@@ -144,6 +144,8 @@
     .k-arc{fill:none;stroke:#6a5e48;stroke-width:1.4;stroke-linecap:round}
     .k-tick{stroke:#7a6e58;stroke-width:1;stroke-linecap:round}
     .k-tick-end{stroke:#b0a080;stroke-width:1.6;stroke-linecap:round}
+    .k-led{fill:#8a1818;filter:drop-shadow(0 0 1.5px rgba(200,30,30,.8));transition:fill .25s ease,filter .25s ease}
+    .k-led.on{fill:#28d44e;filter:drop-shadow(0 0 3px #28d44e) drop-shadow(0 0 7px rgba(40,212,78,.6))}
     .k-range-lbl{fill:#a89878;font-family:'Share Tech Mono',monospace;font-size:8.5px;text-anchor:middle;font-weight:bold}
     .t-knob{width:36px;height:36px;border-radius:50%;background:radial-gradient(circle at 36% 32%,#4a4038,#181410);border:2px solid #0a0806;box-shadow:0 0 10px rgba(0,0,0,.75),inset 0 -1px 3px rgba(0,0,0,.5);position:relative;z-index:1;transition:transform 2.8s cubic-bezier(.2,0,.45,.95)}
     .t-knob.draggable{cursor:grab}
@@ -598,9 +600,9 @@
                 <!-- End ticks (PST=7-o'clock, FTR=5-o'clock) -->
                 <line x1="16.0" y1="46.0" x2="19.2" y2="41.7" class="k-tick-end"/>
                 <line x1="38.0" y1="46.0" x2="34.8" y2="41.7" class="k-tick-end"/>
-                <!-- Mid ticks (9-o'clock, 12-o'clock, 3-o'clock) -->
+                <!-- Mid ticks (9-o'clock, 12-o'clock=LED, 3-o'clock) -->
                 <line x1="3.5"  y1="21.8" x2="7.2"  y2="22.6" class="k-tick"/>
-                <line x1="27"   y1="3"    x2="27"   y2="7"    class="k-tick"/>
+                <circle id="led-past" class="k-led" cx="27" cy="5" r="2.2"/>
                 <line x1="50.5" y1="21.8" x2="46.8" y2="22.6" class="k-tick"/>
                 <!-- Labels -->
                 <text x="12" y="54" class="k-range-lbl">PST</text>
@@ -620,7 +622,7 @@
                 <line x1="16.0" y1="46.0" x2="19.2" y2="41.7" class="k-tick-end"/>
                 <line x1="38.0" y1="46.0" x2="34.8" y2="41.7" class="k-tick-end"/>
                 <line x1="3.5"  y1="21.8" x2="7.2"  y2="22.6" class="k-tick"/>
-                <line x1="27"   y1="3"    x2="27"   y2="7"    class="k-tick"/>
+                <circle id="led-future" class="k-led" cx="27" cy="5" r="2.2"/>
                 <line x1="50.5" y1="21.8" x2="46.8" y2="22.6" class="k-tick"/>
                 <text x="12" y="54" class="k-range-lbl">PST</text>
                 <text x="42" y="54" class="k-range-lbl">FTR</text>
@@ -808,6 +810,13 @@ function setStaticLevel(ratio){
   el.style.opacity = String(Math.max(0, Math.min(1, ratio)));
 }
 
+function updateKnobLed(knobId, angle){
+  const ledId = knobId === 'knobPast' ? 'led-past' : 'led-future';
+  const led = document.getElementById(ledId);
+  if(!led) return;
+  led.classList.toggle('on', Math.abs(angle) < 12);
+}
+
 // angle -150..+150; center(0°) = full lines/no static, extremes = no lines/full static
 function setKnobMapLines(knobId, angle){
   const lineOpacity = Math.max(0, 1 - Math.abs(angle) / 150);
@@ -817,7 +826,8 @@ function setKnobMapLines(knobId, angle){
     el.style.transition = 'none'; // instant during drag
     el.style.opacity = lineOpacity;
   });
-  setStaticLevel(staticRatio * 0.6); // fuzz returns as knob leaves center
+  setStaticLevel(staticRatio * 0.6);
+  updateKnobLed(knobId, angle);
 }
 
 function updateMapLinesFromKnobs(){
@@ -834,6 +844,8 @@ function updateMapLinesFromKnobs(){
     el.style.transition = 'opacity 1.6s ease';
     el.style.opacity    = Math.max(0, 1 - Math.abs(fa) / 150);
   });
+  updateKnobLed('knobPast',   pa);
+  updateKnobLed('knobFuture', fa);
 }
 
 function initKnobDrag(knobEl){
