@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/ask",
+      "destination": "RAILWAY_URL_PLACEHOLDER/ask"
+    }
+  ]
+}

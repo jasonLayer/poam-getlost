@@ -1,0 +1,1308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>POAM — Get Lost</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=VT323&family=Share+Tech+Mono&family=Special+Elite&family=Barlow+Condensed:wght@700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --p: #00ff41; --p2: #00cc33; --red: #ff2525;
+      --bg: #040403; --scr: #060b06;
+      --h: #c8bc9c; --h-hi: #ddd2b2; --h-sh: #9a8e74; --h-dp: #6e6450;
+      --bezel: #0c100c;
+      --bn-ink:#2d6e6e; --bn-paper:#f5f1e8; --bn-bg:#e6e0d4;
+      --bn-dark:#dcd7cb; --bn-accent:#e54f1d; --bn-shadow:#1a3f3f;
+    }
+    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+    html{overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:rgba(0,255,65,.35) #040403}
+    body{width:100%;min-height:100%;background:var(--bg);font-family:'VT323',monospace;cursor:none;overflow:visible}
+    /* Old-school green terminal scrollbar (WebKit) */
+    ::-webkit-scrollbar{width:6px;height:6px}
+    ::-webkit-scrollbar-track{background:#040403;border-left:1px solid rgba(0,255,65,.07)}
+    ::-webkit-scrollbar-thumb{background:rgba(0,255,65,.32);border-radius:0;border:none}
+    ::-webkit-scrollbar-thumb:hover{background:rgba(0,255,65,.62)}
+    ::-webkit-scrollbar-corner{background:#040403}
+
+    #cur{position:fixed;width:10px;height:10px;background:var(--p);border-radius:50%;pointer-events:none;z-index:9999;transform:translate(-50%,-50%);box-shadow:0 0 6px var(--p),0 0 18px var(--p2);mix-blend-mode:screen}
+
+    #scene{width:100%;height:100%;display:flex;align-items:center;justify-content:center;position:relative;perspective:1100px;perspective-origin:50% 52%}
+    #floor{position:absolute;bottom:0;left:-20%;right:-20%;height:55%;background:linear-gradient(to top,rgba(0,255,65,.07) 0%,transparent 100%),repeating-linear-gradient(90deg,transparent 0,transparent calc(10% - 1px),rgba(0,255,65,.06) calc(10%)),repeating-linear-gradient(0deg,transparent 0,transparent calc(14% - 1px),rgba(0,255,65,.04) calc(14%));transform:perspective(500px) rotateX(55deg);transform-origin:bottom center}
+    #ceil{position:absolute;top:0;left:0;right:0;height:38%;background:radial-gradient(ellipse 60% 100% at 50% -10%,rgba(0,255,65,.04) 0%,transparent 100%)}
+    #vig{position:fixed;inset:0;background:radial-gradient(ellipse 72% 72% at 50% 50%,transparent 28%,rgba(0,0,0,.88) 100%);pointer-events:none;z-index:4}
+    #glow{position:absolute;width:300%;height:250%;top:50%;left:50%;transform:translate(-50%,-50%);background:radial-gradient(ellipse at center,rgba(0,255,65,.09) 0%,transparent 55%);pointer-events:none;z-index:1;animation:glowBreathe 4.2s ease-in-out infinite}
+    @keyframes glowBreathe{0%,100%{opacity:.35}50%{opacity:1}}
+
+    /* 3-D dolly */
+    #tw{position:relative;transform-style:preserve-3d;transform:translateZ(-380px) scale(.34);transition:transform 2.4s cubic-bezier(.12,1,.26,1);z-index:10;cursor:pointer}
+    #tw.approached{transform:translateZ(0) scale(1);cursor:default}
+
+    /* Idle bob — inner wrapper only, no conflict with dolly transform */
+    #tw-bob{animation:terminalBob 4.4s ease-in-out infinite;position:relative}
+    #tw.approached #tw-bob{animation:none}
+    @keyframes terminalBob{
+      0%,100%{transform:translateY(0) rotate(0deg)}
+      30%{transform:translateY(-5px) rotate(0.18deg)}
+      70%{transform:translateY(-2px) rotate(-0.1deg)}
+    }
+
+    /* Desk */
+    #desk{position:absolute;bottom:-36px;left:-55px;right:-55px;height:52px;background:repeating-linear-gradient(88deg,transparent 0,transparent 22px,rgba(0,0,0,.07) 22px,rgba(0,0,0,.07) 24px),linear-gradient(180deg,#523820 0%,#3c2814 45%,#261809 100%);border-radius:0 0 5px 5px;box-shadow:0 8px 28px rgba(0,0,0,.75),inset 0 1px 0 rgba(255,180,80,.07);transform:perspective(280px) rotateX(-9deg);transform-origin:top center;z-index:-1}
+
+    /* Desk legs */
+    .desk-leg{position:absolute;bottom:-148px;width:18px;border-radius:3px 3px 5px 5px;z-index:-2;
+      background:linear-gradient(180deg,#3e2a14 0%,#2a1a0a 40%,#16100600 100%);
+      box-shadow:inset 2px 0 0 rgba(255,180,80,.06),inset -2px 0 0 rgba(0,0,0,.4)}
+    .desk-leg::after{content:'';position:absolute;bottom:0;left:-4px;right:-4px;height:8px;
+      background:linear-gradient(180deg,#2a1a0a,transparent);border-radius:4px;opacity:.7}
+    #leg-l{left:70px;height:120px}
+    #leg-r{right:70px;height:120px}
+
+    /* Housing */
+    .t-housing{width:min(720px,96vw);background:var(--h);border-radius:11px 11px 5px 5px;box-shadow:0 0 90px rgba(0,255,65,.10),0 0 220px rgba(0,255,65,.04),0 10px 40px rgba(0,0,0,.65),inset 0 1px 0 var(--h-hi),inset 0 -2px 0 var(--h-sh),inset 2px 0 0 var(--h-hi),inset -2px 0 0 var(--h-sh);user-select:none}
+
+    /* Top bar */
+    .t-topbar{height:30px;background:linear-gradient(180deg,var(--h-hi) 0%,var(--h) 100%);border-bottom:1px solid var(--h-sh);border-radius:11px 11px 0 0;display:flex;align-items:center;padding:0 16px;gap:10px}
+    .t-vents{display:flex;gap:3px;align-items:center}
+    .t-vent{width:18px;height:3px;background:var(--h-sh);border-radius:2px;box-shadow:inset 0 1px 1px rgba(0,0,0,.35)}
+    .t-badge{font-family:'Share Tech Mono',monospace;font-size:8.5px;letter-spacing:3px;color:var(--h-dp);text-transform:uppercase;margin:0 auto}
+    .t-led{width:7px;height:7px;border-radius:50%;background:#28d44e;box-shadow:0 0 4px #28d44e,0 0 12px rgba(40,212,78,.45);flex-shrink:0;animation:led-pulse 2.6s ease-in-out infinite}
+    @keyframes led-pulse{0%,100%{opacity:.45}50%{opacity:1}}
+
+    /* Body */
+    .t-body{display:flex;padding:11px 13px 9px;gap:11px;align-items:stretch}
+
+    /* Gauge panel */
+    .t-gauges{width:128px;flex-shrink:0;display:flex;flex-direction:column;gap:6px;justify-content:center;background:linear-gradient(180deg,#8c8070 0%,#5e5444 100%);border-radius:5px;padding:10px 0;box-shadow:inset 0 2px 5px rgba(0,0,0,.5),inset 0 -1px 0 rgba(255,255,255,.04),0 1px 0 var(--h-hi)}
+    .gauge-slot{display:flex;flex-direction:column;align-items:center;gap:3px}
+    .gauge-ring{width:62px;height:62px;border-radius:50%;background:radial-gradient(circle at 38% 34%,#52473a,#1e1812);box-shadow:0 3px 8px rgba(0,0,0,.65),inset 0 1px 2px rgba(255,255,255,.07),0 0 0 1px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;overflow:hidden}
+    .gauge-svg{display:block;overflow:hidden}
+    .g-arc{fill:none;stroke:#2e2820;stroke-width:1.8;stroke-linecap:round}
+    .g-tick{stroke:#5a5040;stroke-width:0.7;stroke-linecap:round}
+    .g-tick-maj{stroke:#8a7e60;stroke-width:1.1;stroke-linecap:round}
+    .g-num{fill:#6e6250;font-family:'Share Tech Mono',monospace;font-size:4.5px;text-anchor:middle;dominant-baseline:central}
+    .g-lbl{fill:#584e3c;font-family:'Share Tech Mono',monospace;font-size:4px;text-anchor:middle;letter-spacing:1.2px}
+
+    /* Needle group — CSS transition for slam */
+    .g-ndl-grp{transition:transform 0.8s cubic-bezier(.35,0,.85,.1)}
+    .g-needle{stroke:#e63030;stroke-width:1.3;stroke-linecap:round}
+    .g-ndl-cap{fill:#e63030}
+    .g-ndl-ctr{fill:#14100c;stroke:#4a4030;stroke-width:0.5}
+
+    /* Idle: needles oscillate in PAST (healthy) range */
+    .gauge-slot:nth-child(1) .g-ndl-grp{animation:ndl-freedom 5.2s ease-in-out infinite}
+    .gauge-slot:nth-child(2) .g-ndl-grp{animation:ndl-effcncy 8.4s ease-in-out infinite}
+    .gauge-slot:nth-child(3) .g-ndl-grp{animation:ndl-explore 4.0s ease-in-out infinite}
+    /* FREEDOM: high (pointer right = lots of freedom) */
+    @keyframes ndl-freedom{0%,100%{transform:rotate(68deg)}50%{transform:rotate(82deg)}}
+    /* EFFICIENCY: low (pointer left = little efficiency, that's ok in the past) */
+    @keyframes ndl-effcncy{0%,100%{transform:rotate(-84deg)}42%{transform:rotate(-98deg)}78%{transform:rotate(-76deg)}}
+    /* EXPLORE: high */
+    @keyframes ndl-explore{0%,100%{transform:rotate(58deg)}55%{transform:rotate(74deg)}}
+
+    .gauge-lbl{font-family:'Share Tech Mono',monospace;font-size:7px;letter-spacing:2px;color:#6e6050;text-transform:uppercase}
+
+    /* Screen bezel */
+    .t-screen-wrap{flex:1;background:var(--bezel);border-radius:7px;padding:11px;box-shadow:inset 0 0 40px rgba(0,0,0,.95),inset 0 4px 8px rgba(0,0,0,.8),0 0 0 1px #080a08}
+
+    /* Idle breathing glow inside screen */
+    #scr-breathe{position:absolute;inset:0;z-index:1;pointer-events:none;background:radial-gradient(ellipse 90% 70% at 50% 45%,rgba(0,255,65,.07) 0%,transparent 100%);animation:scrBreathe 4.2s ease-in-out infinite}
+    #tw.approached #scr-breathe{animation:none;transition:opacity .5s ease;opacity:0}
+    @keyframes scrBreathe{0%,100%{opacity:.3}50%{opacity:1}}
+
+    /* Screen */
+    .screen{position:relative;aspect-ratio:4/3;background:var(--scr);overflow:hidden;border-radius:3px}
+    .screen::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent 0,transparent 2px,rgba(0,0,0,.18) 2px,rgba(0,0,0,.18) 4px);pointer-events:none;z-index:90}
+    .screen::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 50%,transparent 52%,rgba(0,0,0,.62) 100%);pointer-events:none;z-index:91}
+
+    /* Control strip */
+    .t-controls{background:linear-gradient(180deg,var(--h) 0%,var(--h-sh) 100%);border-top:1px solid var(--h-sh);border-radius:0 0 5px 5px;padding:9px 14px;display:flex;align-items:center;gap:16px}
+
+    /* Button grid 4×3 */
+    .t-btngrid{display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(3,1fr);gap:3.5px}
+    .t-btn{width:17px;height:17px;border-radius:3px;border:1px solid rgba(0,0,0,.38);box-shadow:0 2px 0 rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.14);cursor:default;transition:transform .08s ease,box-shadow .08s ease,filter .08s ease}
+    #tw.approached .t-btngrid .t-btn{cursor:pointer}
+    .t-btn.pressed{transform:translateY(2px);box-shadow:none;filter:brightness(.7)}
+    .t-btn.error-flash{animation:btnError .45s ease forwards}
+    @keyframes btnError{
+      0%,100%{box-shadow:0 2px 0 rgba(0,0,0,.5);transform:none;filter:brightness(.7)}
+      25%,65%{box-shadow:0 0 0 2px var(--red),0 0 5px var(--red);filter:brightness(1.4);transform:translateY(1px)}
+    }
+    .col-g{background:#3a7848}.col-y{background:#9a8018}.col-b{background:#284e92}
+    .col-w{background:#989282}.col-n{background:var(--h-sh)}.col-o{background:#8a6820}
+
+    /* ABORT */
+    .t-abort-wrap{display:flex;flex-direction:column;align-items:center;gap:3px;flex-shrink:0}
+    .t-abort{width:40px;height:40px;border-radius:50%;background:radial-gradient(circle at 35% 32%,#f24040,#7a0e0e);border:2px solid #520808;box-shadow:0 4px 8px rgba(54,6,6,.8),inset 0 -2px 3px rgba(0,0,0,.45),0 0 4px rgba(180,0,0,.2)}
+    .t-abort-lbl{font-family:'Share Tech Mono',monospace;font-size:5.5px;letter-spacing:1.5px;color:var(--h-dp);text-transform:uppercase}
+
+    /* Knob frame with arc ticks */
+    .t-knob-wrap{display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0}
+    .t-knob-frame{position:relative;width:54px;height:54px;display:flex;align-items:center;justify-content:center}
+    .knob-arc-svg{position:absolute;inset:0;pointer-events:none}
+    .k-arc{fill:none;stroke:#6a5e48;stroke-width:1.4;stroke-linecap:round}
+    .k-tick{stroke:#7a6e58;stroke-width:1;stroke-linecap:round}
+    .k-tick-end{stroke:#b0a080;stroke-width:1.6;stroke-linecap:round}
+    .k-range-lbl{fill:#a89878;font-family:'Share Tech Mono',monospace;font-size:8.5px;text-anchor:middle;font-weight:bold}
+    .t-knob{width:36px;height:36px;border-radius:50%;background:radial-gradient(circle at 36% 32%,#4a4038,#181410);border:2px solid #0a0806;box-shadow:0 0 10px rgba(0,0,0,.75),inset 0 -1px 3px rgba(0,0,0,.5);position:relative;z-index:1;transition:transform 2.8s cubic-bezier(.2,0,.45,.95)}
+    .t-knob.draggable{cursor:grab}
+    .t-knob.draggable:active{cursor:grabbing}
+    .t-knob::after{content:'';position:absolute;top:5px;left:50%;transform:translateX(-50%);width:2.5px;height:9px;background:rgba(255,255,255,.35);border-radius:1px}
+    .t-knob-lbl{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:2px;color:#7a6e58;text-transform:uppercase}
+
+    /* Numpad */
+    .t-numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:3.5px;margin-left:auto}
+    .t-num{width:17px;height:17px;border-radius:3px;background:var(--h-sh);border:1px solid rgba(0,0,0,.32);box-shadow:0 2px 0 rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-family:'Share Tech Mono',monospace;font-size:6.5px;color:var(--h-dp)}
+
+    /* Hint */
+    #hint{position:absolute;bottom:28px;left:50%;transform:translateX(-50%);font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:5px;color:rgba(0,255,65,.42);white-space:nowrap;z-index:20;transition:opacity .6s ease;animation:breathe 2.4s ease-in-out infinite}
+    @keyframes breathe{0%,100%{opacity:.22}50%{opacity:.65}}
+
+    /* Layers */
+    .layer{position:absolute;inset:0;display:flex;flex-direction:column}
+
+    /* BOOT */
+    #lBoot{align-items:center;justify-content:center;gap:6px;transition:opacity .4s ease}
+    #lBoot.out{opacity:0;pointer-events:none}
+    .boot-logo{font-size:clamp(28px,6vw,44px);letter-spacing:10px;color:var(--p);text-shadow:0 0 12px var(--p),0 0 40px var(--p2);animation:flicker 5s infinite}
+    .boot-sub{font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:4px;color:rgba(0,255,65,.38);margin-top:2px}
+    .boot-blink{margin-top:22px;font-size:clamp(14px,3vw,18px);letter-spacing:3px;color:rgba(0,255,65,.55);animation:blink 1.1s step-end infinite}
+    @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+    @keyframes flicker{0%,90%,100%{opacity:1}91%{opacity:.7}93%{opacity:1}95%{opacity:.5}97%{opacity:1}}
+
+    /* MAP */
+    #lMap{opacity:0;transition:opacity .5s ease}
+    #lMap.in{opacity:1}
+    .map-hdr{padding:10px 16px 7px;flex-shrink:0;font-family:'Share Tech Mono',monospace;font-size:clamp(8px,1.8vw,11px);letter-spacing:3px;color:rgba(0,255,65,.4);border-bottom:1px solid rgba(0,255,65,.1)}
+    .map-wrap{flex:1;display:flex;align-items:stretch;justify-content:center;padding:4px 8px;position:relative}
+    #sfMap{width:100%;height:100%;overflow:visible}
+    .mp{stroke:rgba(0,255,65,.3);stroke-width:.4;fill:none;stroke-linecap:round}
+    .mp-maj{stroke:rgba(0,255,65,.65);stroke-width:.9;fill:none;stroke-linecap:round}
+    .city-line{stroke:rgba(0,255,65,.5);stroke-width:1.2;fill:rgba(0,255,65,.025);stroke-linecap:round}
+    .red-road{stroke:var(--red)!important;stroke-width:1.8!important;filter:drop-shadow(0 0 3px var(--red)) drop-shadow(0 0 7px rgba(255,37,37,.4));transition:stroke .4s ease,stroke-width .4s ease,filter .4s ease}
+    .draw-anim{stroke-dasharray:var(--dl,800);stroke-dashoffset:var(--dl,800);animation:draw var(--dur,1.4s) ease-out var(--delay,0s) forwards}
+    @keyframes draw{to{stroke-dashoffset:0}}
+    .ml{fill:rgba(0,255,65,.35);font-family:'Share Tech Mono',monospace;font-size:4px}
+
+    /* MESSAGE */
+    #lMsg{position:absolute;inset:0;background:rgba(4,4,3,.72);backdrop-filter:none;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px 28px;opacity:0;transition:opacity .8s ease;z-index:30;pointer-events:none}
+    #lMsg.in{opacity:1;pointer-events:all}
+    #msgText{font-size:clamp(14px,2.6vw,19px);color:var(--p);text-align:center;line-height:1.65;text-shadow:0 0 12px rgba(0,255,65,.7),0 0 30px rgba(0,255,65,.3);max-width:460px;white-space:pre-line}
+    #msgQ{font-size:clamp(15px,2.8vw,21px);color:var(--red);text-align:center;margin-top:18px;text-shadow:0 0 10px var(--red);min-height:1.4em}
+    #choices{display:flex;gap:22px;margin-top:22px;opacity:0;transform:translateY(8px);transition:all .5s ease}
+    #choices.in{opacity:1;transform:translateY(0)}
+    .cbtn{font-family:'VT323',monospace;font-size:clamp(20px,4vw,26px);letter-spacing:4px;padding:7px 26px;background:transparent;border:2px solid;cursor:pointer;transition:background .2s,box-shadow .2s,color .2s}
+    .cbtn-y{color:var(--p);border-color:var(--p)}.cbtn-y:hover{background:var(--p);color:var(--bg);box-shadow:0 0 24px var(--p)}
+    .cbtn-n{color:var(--red);border-color:var(--red)}.cbtn-n:hover{background:var(--red);color:var(--bg);box-shadow:0 0 24px var(--red)}
+
+    /* SHEEP */
+    #lSheep{align-items:center;justify-content:center;background:var(--scr);padding:20px;opacity:0;transition:opacity .5s ease;pointer-events:none;z-index:50}
+    #lSheep.in{opacity:1;pointer-events:all}
+    #sheepMsg{font-size:clamp(16px,3.2vw,24px);color:var(--p);text-align:center;line-height:1.7;text-shadow:0 0 10px var(--p);white-space:pre-line}
+    #sheepBaa{font-size:clamp(22px,5vw,36px);color:var(--red);text-align:center;margin-top:10px;text-shadow:0 0 16px var(--red);letter-spacing:4px;min-height:1.5em}
+
+    /* SECRET TERMINAL */
+    #lSecret{background:#020402;z-index:60;opacity:0;transition:opacity .4s ease;pointer-events:none;padding:10px 12px 8px}
+    #lSecret.in{opacity:1;pointer-events:all}
+    #secretHdr{font-family:'Share Tech Mono',monospace;font-size:7px;letter-spacing:3px;color:rgba(0,255,65,.35);border-bottom:1px solid rgba(0,255,65,.08);padding-bottom:5px;margin-bottom:8px;flex-shrink:0}
+    #secretLog{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:6px;padding-right:2px;scrollbar-width:thin;scrollbar-color:rgba(0,255,65,.22) transparent}
+    .sec-entry{display:flex;flex-direction:column;gap:3px}
+    .sec-q{font-family:'Share Tech Mono',monospace;font-size:8px;color:rgba(0,255,65,.45);letter-spacing:1px}
+    .sec-a{font-size:clamp(11px,2vw,14px);color:var(--p);line-height:1.45;text-shadow:0 0 4px rgba(0,255,65,.2);min-height:1.2em}
+    #secretInput{display:flex;align-items:center;gap:5px;border-top:1px solid rgba(0,255,65,.08);padding-top:6px;flex-shrink:0;margin-top:4px}
+    #secretPrompt{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--p);text-shadow:0 0 6px var(--p);flex-shrink:0;animation:blink 1.1s step-end infinite}
+    #secretQ{flex:1;background:transparent;border:none;outline:none;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--p);caret-color:var(--p);letter-spacing:1px;cursor:text}
+    #secretQ::placeholder{color:rgba(0,255,65,.2)}
+
+    /* TRUMLEY */
+    #lTrum{background:var(--scr);opacity:0;transform:translateY(100%);transition:opacity .6s ease,transform .7s cubic-bezier(.16,1,.3,1);padding:12px 16px 10px;z-index:40;overflow:hidden}
+    #lTrum.in{opacity:1;transform:translateY(0)}
+    .t-hdr{display:flex;align-items:center;gap:10px;padding-bottom:8px;border-bottom:1px solid rgba(0,255,65,.15);flex-shrink:0}
+    .t-avatar{width:30px;height:30px;border:1px solid var(--p);display:flex;align-items:center;justify-content:center;font-size:20px;color:var(--p);text-shadow:0 0 8px var(--p);animation:flicker 4s infinite;flex-shrink:0}
+    .t-name{font-size:clamp(13px,2.4vw,17px);letter-spacing:4px;color:var(--p);text-shadow:0 0 6px var(--p)}
+    .t-status{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:2px;color:rgba(0,255,65,.45)}
+    .t-msgs{display:flex;flex-direction:column;gap:7px;margin-top:8px;flex-shrink:0}
+    .t-msg-sender{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:2px;color:rgba(0,255,65,.4);margin-bottom:1px}
+    .t-msg-text{font-size:clamp(14px,2.6vw,18px);color:var(--p);text-shadow:0 0 4px rgba(0,255,65,.2);line-height:1.4;min-height:1.2em}
+
+    /* SITE PREVIEW */
+    #sitePreview{margin-top:10px;flex-shrink:0;opacity:0;transform:translateY(6px);transition:opacity .6s ease,transform .6s ease}
+    #sitePreview.in{opacity:1;transform:translateY(0)}
+    .gl-window{border:2px solid var(--bn-ink);border-radius:8px;overflow:hidden;box-shadow:4px 4px 0 var(--bn-shadow);font-family:'Special Elite','Courier New',serif;background:var(--bn-bg)}
+    .gl-titlebar{background:var(--bn-dark);border-bottom:2px solid var(--bn-ink);padding:3px 8px;display:flex;align-items:center;gap:5px}
+    .gl-dot{width:7px;height:7px;border:1.5px solid var(--bn-ink);flex-shrink:0}
+    .gl-site-name{font-family:'Space Mono',monospace;font-size:8px;font-weight:700;color:var(--bn-ink);letter-spacing:2px;text-transform:uppercase;margin:0 auto}
+    .gl-poam{font-family:'Space Mono',monospace;font-size:7px;font-weight:700;color:var(--bn-ink);letter-spacing:1px;text-transform:uppercase}
+    .gl-body{display:flex;min-height:70px}
+    .gl-sidebar{width:60px;flex-shrink:0;background:var(--bn-dark);border-right:1.5px solid var(--bn-ink);padding:5px 4px}
+    .gl-filter-head{font-family:'Barlow Condensed',sans-serif;font-size:7px;font-weight:800;color:var(--bn-ink);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+    .gl-tags{display:flex;flex-wrap:wrap;gap:2px}
+    .gl-tag{font-size:6px;color:white;background:var(--bn-ink);padding:1px 4px;border:1px solid var(--bn-shadow);box-shadow:1px 1px 0 var(--bn-shadow);text-transform:uppercase;letter-spacing:.5px}
+    .gl-main{flex:1;padding:5px 6px;display:grid;grid-template-columns:1fr 1fr;gap:4px}
+    .gl-card{background:var(--bn-paper);border:1.5px solid var(--bn-ink);border-radius:3px;padding:4px 5px;box-shadow:2px 2px 0 var(--bn-shadow)}
+    .gl-card-name{font-size:7px;font-weight:700;color:var(--bn-ink);font-family:'Special Elite',serif;line-height:1.2}
+    .gl-card-tag{font-size:6px;color:var(--bn-accent);font-family:'Space Mono',monospace;margin-top:2px}
+    #launchBtn{display:none;margin-top:8px;width:100%;font-family:'VT323',monospace;font-size:clamp(16px,3vw,22px);letter-spacing:4px;color:var(--bg);background:var(--p);border:2px solid var(--p2);padding:5px 0;cursor:pointer;text-align:center;box-shadow:0 0 16px rgba(0,255,65,.3);transition:box-shadow .2s}
+    #launchBtn:hover{box-shadow:0 0 30px var(--p)}
+    #launchBtn.show{display:block}
+
+    /* CRT Static / Tuning interference */
+    #static{position:absolute;inset:0;z-index:92;pointer-events:none;opacity:0;overflow:hidden}
+    #static::before{content:'';position:absolute;inset:0;
+      background:repeating-linear-gradient(0deg,
+        transparent 0px, transparent 3px,
+        rgba(0,255,65,.06) 3px, rgba(0,255,65,.06) 4px,
+        transparent 4px, transparent 7px,
+        rgba(0,255,65,.09) 7px, rgba(0,255,65,.09) 8px,
+        transparent 8px, transparent 11px,
+        rgba(255,255,255,.04) 11px, rgba(255,255,255,.04) 12px
+      );
+      animation:staticScroll 0.08s steps(1) infinite}
+    #static::after{content:'';position:absolute;inset:0;
+      background:repeating-linear-gradient(0deg,
+        rgba(0,0,0,.55) 0px, rgba(0,0,0,.55) 1px,
+        transparent 1px, transparent 4px
+      );
+      animation:staticFlicker 0.13s steps(1) infinite}
+    @keyframes staticScroll{
+      0%  {background-position:0 0}
+      25% {background-position:0 -8px}
+      50% {background-position:0 3px}
+      75% {background-position:0 -14px}
+      100%{background-position:0 6px}
+    }
+    @keyframes staticFlicker{
+      0%  {opacity:.7}
+      20% {opacity:.4}
+      40% {opacity:.8}
+      60% {opacity:.5}
+      80% {opacity:.9}
+      100%{opacity:.6}
+    }
+
+    /* Glitch */
+    @keyframes glitch{
+      0%{clip-path:inset(40% 0 55% 0);transform:translate(-4px,0)}
+      25%{clip-path:inset(10% 0 85% 0);transform:translate(4px,0)}
+      50%{clip-path:inset(70% 0 5% 0);transform:translate(-2px,0)}
+      75%{clip-path:inset(30% 0 50% 0);transform:translate(2px,0)}
+      100%{clip-path:inset(40% 0 55% 0);transform:translate(0,0)}
+    }
+    .glitching::before{content:'';position:absolute;inset:0;background:rgba(0,255,65,.1);animation:glitch .12s steps(1) 4;z-index:95}
+
+    /* Ripple */
+    .ripple{position:fixed;width:36px;height:36px;border-radius:50%;border:1.5px solid var(--p);pointer-events:none;z-index:9998;animation:rippleOut .55s ease-out forwards}
+    @keyframes rippleOut{from{transform:translate(-50%,-50%) scale(0);opacity:.7}to{transform:translate(-50%,-50%) scale(2.5);opacity:0}}
+
+    @media(max-width:600px){
+      #hint{font-size:9px;letter-spacing:3px;bottom:18px}
+      .cbtn{font-size:20px;padding:6px 18px;letter-spacing:2px}
+      .t-gauges{display:none}.t-controls{display:none}
+      .t-housing{width:min(380px,96vw)}
+    }
+  </style>
+</head>
+<body>
+<div id="cur"></div>
+<div id="vig"></div>
+
+<div id="scene">
+  <div id="ceil"></div>
+  <div id="floor"></div>
+  <div id="glow"></div>
+
+  <div id="tw" role="button" aria-label="Approach terminal" tabindex="0">
+    <div id="tw-bob">
+      <div id="desk"></div>
+      <div class="desk-leg" id="leg-l"></div>
+      <div class="desk-leg" id="leg-r"></div>
+      <div class="t-housing">
+
+        <div class="t-topbar">
+          <div class="t-vents">
+            <div class="t-vent"></div><div class="t-vent"></div><div class="t-vent"></div>
+            <div class="t-vent"></div><div class="t-vent"></div><div class="t-vent"></div>
+          </div>
+          <span class="t-badge">POAM · CITY INTERFACE · v2.4</span>
+          <div class="t-led"></div>
+        </div>
+
+        <div class="t-body">
+
+          <!-- Gauge panel -->
+          <div class="t-gauges" id="gaugePanel">
+
+            <!-- Gauge 1: FREEDOM (idles HIGH → slams low) -->
+            <div class="gauge-slot">
+              <div class="gauge-ring">
+                <svg class="gauge-svg" viewBox="0 0 50 50" width="54" height="54">
+                  <circle cx="25" cy="25" r="23" fill="#16120e"/>
+                  <circle cx="25" cy="25" r="23" fill="none" stroke="#241e18" stroke-width="0.5"/>
+                  <!-- Arc: 300° sweep from 7-o'clock(120°SVG) to 5-o'clock(60°SVG) -->
+                  <path d="M 15 42.3 A 20 20 0 1 1 35 42.3" class="g-arc"/>
+                  <!-- Major ticks at 0%, 25%, 50%, 75%, 100% of 300° arc -->
+                  <line x1="15"   y1="42.3" x2="16.5" y2="39.7" class="g-tick-maj"/>
+                  <line x1="5.7"  y1="19.8" x2="8.6"  y2="20.6" class="g-tick-maj"/>
+                  <line x1="25"   y1="5"    x2="25"   y2="8"    class="g-tick-maj"/>
+                  <line x1="44.3" y1="19.8" x2="41.4" y2="20.6" class="g-tick-maj"/>
+                  <line x1="35"   y1="42.3" x2="33.5" y2="39.7" class="g-tick-maj"/>
+                  <!-- Minor ticks -->
+                  <line x1="9.1"  y1="37.2" x2="11.0" y2="35.4" class="g-tick"/>
+                  <line x1="9.1"  y1="12.8" x2="11.0" y2="14.6" class="g-tick"/>
+                  <line x1="34.5" y1="9.0"  x2="35.3" y2="11.2" class="g-tick"/>
+                  <line x1="40.9" y1="37.2" x2="39.0" y2="35.4" class="g-tick"/>
+                  <g class="g-ndl-grp" transform="translate(25 25)">
+                    <line x1="0" y1="3" x2="0" y2="-16" class="g-needle"/>
+                    <circle cx="0" cy="0" r="2.8" class="g-ndl-cap"/>
+                    <circle cx="0" cy="0" r="1.6" class="g-ndl-ctr"/>
+                  </g>
+                  <text x="25" y="46" class="g-lbl">FREEDOM</text>
+                </svg>
+              </div>
+            </div>
+
+            <!-- Gauge 2: EFFCNCY (idles LOW → slams high) -->
+            <div class="gauge-slot">
+              <div class="gauge-ring">
+                <svg class="gauge-svg" viewBox="0 0 50 50" width="54" height="54">
+                  <circle cx="25" cy="25" r="23" fill="#16120e"/>
+                  <circle cx="25" cy="25" r="23" fill="none" stroke="#241e18" stroke-width="0.5"/>
+                  <path d="M 15 42.3 A 20 20 0 1 1 35 42.3" class="g-arc"/>
+                  <line x1="15"   y1="42.3" x2="16.5" y2="39.7" class="g-tick-maj"/>
+                  <line x1="5.7"  y1="19.8" x2="8.6"  y2="20.6" class="g-tick-maj"/>
+                  <line x1="25"   y1="5"    x2="25"   y2="8"    class="g-tick-maj"/>
+                  <line x1="44.3" y1="19.8" x2="41.4" y2="20.6" class="g-tick-maj"/>
+                  <line x1="35"   y1="42.3" x2="33.5" y2="39.7" class="g-tick-maj"/>
+                  <line x1="9.1"  y1="37.2" x2="11.0" y2="35.4" class="g-tick"/>
+                  <line x1="9.1"  y1="12.8" x2="11.0" y2="14.6" class="g-tick"/>
+                  <line x1="34.5" y1="9.0"  x2="35.3" y2="11.2" class="g-tick"/>
+                  <line x1="40.9" y1="37.2" x2="39.0" y2="35.4" class="g-tick"/>
+                  <g class="g-ndl-grp" transform="translate(25 25)">
+                    <line x1="0" y1="3" x2="0" y2="-16" class="g-needle"/>
+                    <circle cx="0" cy="0" r="2.8" class="g-ndl-cap"/>
+                    <circle cx="0" cy="0" r="1.6" class="g-ndl-ctr"/>
+                  </g>
+                  <text x="25" y="46" class="g-lbl">EFFCNCY</text>
+                </svg>
+              </div>
+            </div>
+
+            <!-- Gauge 3: EXPLORE (idles HIGH → slams low) -->
+            <div class="gauge-slot">
+              <div class="gauge-ring">
+                <svg class="gauge-svg" viewBox="0 0 50 50" width="54" height="54">
+                  <circle cx="25" cy="25" r="23" fill="#16120e"/>
+                  <circle cx="25" cy="25" r="23" fill="none" stroke="#241e18" stroke-width="0.5"/>
+                  <path d="M 15 42.3 A 20 20 0 1 1 35 42.3" class="g-arc"/>
+                  <line x1="15"   y1="42.3" x2="16.5" y2="39.7" class="g-tick-maj"/>
+                  <line x1="5.7"  y1="19.8" x2="8.6"  y2="20.6" class="g-tick-maj"/>
+                  <line x1="25"   y1="5"    x2="25"   y2="8"    class="g-tick-maj"/>
+                  <line x1="44.3" y1="19.8" x2="41.4" y2="20.6" class="g-tick-maj"/>
+                  <line x1="35"   y1="42.3" x2="33.5" y2="39.7" class="g-tick-maj"/>
+                  <line x1="9.1"  y1="37.2" x2="11.0" y2="35.4" class="g-tick"/>
+                  <line x1="9.1"  y1="12.8" x2="11.0" y2="14.6" class="g-tick"/>
+                  <line x1="34.5" y1="9.0"  x2="35.3" y2="11.2" class="g-tick"/>
+                  <line x1="40.9" y1="37.2" x2="39.0" y2="35.4" class="g-tick"/>
+                  <g class="g-ndl-grp" transform="translate(25 25)">
+                    <line x1="0" y1="3" x2="0" y2="-16" class="g-needle"/>
+                    <circle cx="0" cy="0" r="2.8" class="g-ndl-cap"/>
+                    <circle cx="0" cy="0" r="1.6" class="g-ndl-ctr"/>
+                  </g>
+                  <text x="25" y="46" class="g-lbl">EXPLORE</text>
+                </svg>
+              </div>
+            </div>
+
+          </div><!-- /t-gauges -->
+
+          <!-- Screen -->
+          <div class="t-screen-wrap">
+            <div class="screen" id="screen">
+
+              <div id="scr-breathe"></div>
+              <div id="static"></div>
+
+              <div class="layer" id="lBoot">
+                <div class="boot-logo">P O A M</div>
+                <div class="boot-sub">SECURE TERMINAL // CITY INTERFACE</div>
+                <div class="boot-blink">[ APPROACH TO INTERFACE ]</div>
+              </div>
+
+              <div class="layer" id="lMap">
+                <div class="map-hdr">// SAN FRANCISCO — INFRASTRUCTURE ANALYSIS</div>
+                <div class="map-wrap">
+                  <svg id="sfMap" viewBox="0 0 220 190" xmlns="http://www.w3.org/2000/svg">
+                    <!-- E-W minor streets — full width, staggered draw -->
+                    <line class="mp draw-anim" style="--dl:220;--dur:.65s;--delay:.06s" x1="0" y1="5"   x2="220" y2="5"/>
+                    <line class="mp draw-anim" style="--dl:220;--dur:.65s;--delay:.10s" x1="0" y1="14"  x2="220" y2="14"/>
+                    <line class="mp draw-anim" style="--dl:220;--dur:.65s;--delay:.14s" x1="0" y1="23"  x2="220" y2="23"/>
+                    <line class="mp draw-anim" style="--dl:220;--dur:.65s;--delay:.18s" x1="0" y1="34"  x2="220" y2="34"/>
+                    <line class="mp draw-anim" style="--dl:220;--dur:.65s;--delay:.22s" x1="0" y1="45"  x2="220" y2="45"/>
+                    <line class="mp draw-anim" style="--dl:220;--dur:.65s;--delay:.26s" x1="0" y1="56"  x2="220" y2="56"/>
+                    <line class="mp draw-anim" style="--dl:220;--dur:.65s;--delay:.30s" x1="0" y1="67"  x2="220" y2="67"/>
+                    <line class="mp draw-anim" style="--dl:220;--dur:.65s;--delay:.34s" x1="0" y1="78"  x2="220" y2="78"/>
+                    <line class="mp draw-anim" style="--dl:220;--dur:.65s;--delay:.38s" x1="0" y1="89"  x2="220" y2="89"/>
+                    <line class="mp draw-anim" style="--dl:220;--dur:.65s;--delay:.42s" x1="0" y1="100" x2="220" y2="100"/>
+                    <line class="mp draw-anim" style="--dl:220;--dur:.65s;--delay:.46s" x1="0" y1="111" x2="220" y2="111"/>
+                    <line class="mp draw-anim" style="--dl:220;--dur:.65s;--delay:.50s" x1="0" y1="122" x2="220" y2="122"/>
+                    <line class="mp draw-anim" style="--dl:220;--dur:.65s;--delay:.54s" x1="0" y1="133" x2="220" y2="133"/>
+                    <line class="mp draw-anim" style="--dl:220;--dur:.65s;--delay:.58s" x1="0" y1="144" x2="220" y2="144"/>
+                    <line class="mp draw-anim" style="--dl:220;--dur:.65s;--delay:.62s" x1="0" y1="155" x2="220" y2="155"/>
+                    <line class="mp draw-anim" style="--dl:220;--dur:.65s;--delay:.66s" x1="0" y1="166" x2="220" y2="166"/>
+                    <line class="mp draw-anim" style="--dl:220;--dur:.65s;--delay:.70s" x1="0" y1="177" x2="220" y2="177"/>
+                    <line class="mp draw-anim" style="--dl:220;--dur:.65s;--delay:.74s" x1="0" y1="188" x2="220" y2="188"/>
+                    <!-- N-S minor streets — full height -->
+                    <line class="mp draw-anim" style="--dl:190;--dur:.65s;--delay:.08s" x1="13"  y1="0" x2="13"  y2="190"/>
+                    <line class="mp draw-anim" style="--dl:190;--dur:.65s;--delay:.12s" x1="26"  y1="0" x2="26"  y2="190"/>
+                    <line class="mp draw-anim" style="--dl:190;--dur:.65s;--delay:.16s" x1="39"  y1="0" x2="39"  y2="190"/>
+                    <line class="mp draw-anim" style="--dl:190;--dur:.65s;--delay:.20s" x1="52"  y1="0" x2="52"  y2="190"/>
+                    <line class="mp draw-anim" style="--dl:190;--dur:.65s;--delay:.24s" x1="65"  y1="0" x2="65"  y2="190"/>
+                    <line class="mp draw-anim" style="--dl:190;--dur:.65s;--delay:.28s" x1="78"  y1="0" x2="78"  y2="190"/>
+                    <line class="mp draw-anim" style="--dl:190;--dur:.65s;--delay:.32s" x1="91"  y1="0" x2="91"  y2="190"/>
+                    <line class="mp draw-anim" style="--dl:190;--dur:.65s;--delay:.36s" x1="104" y1="0" x2="104" y2="190"/>
+                    <line class="mp draw-anim" style="--dl:190;--dur:.65s;--delay:.40s" x1="117" y1="0" x2="117" y2="190"/>
+                    <line class="mp draw-anim" style="--dl:190;--dur:.65s;--delay:.44s" x1="130" y1="0" x2="130" y2="190"/>
+                    <line class="mp draw-anim" style="--dl:190;--dur:.65s;--delay:.48s" x1="143" y1="0" x2="143" y2="190"/>
+                    <line class="mp draw-anim" style="--dl:190;--dur:.65s;--delay:.52s" x1="156" y1="0" x2="156" y2="190"/>
+                    <line class="mp draw-anim" style="--dl:190;--dur:.65s;--delay:.56s" x1="169" y1="0" x2="169" y2="190"/>
+                    <line class="mp draw-anim" style="--dl:190;--dur:.65s;--delay:.60s" x1="182" y1="0" x2="182" y2="190"/>
+                    <line class="mp draw-anim" style="--dl:190;--dur:.65s;--delay:.64s" x1="195" y1="0" x2="195" y2="190"/>
+                    <line class="mp draw-anim" style="--dl:190;--dur:.65s;--delay:.68s" x1="208" y1="0" x2="208" y2="190"/>
+                    <!-- Major roads — drawn on top, highlighted red by JS -->
+                    <path id="rMarket"  class="mp-maj draw-anim" style="--dl:258;--dur:1.1s;--delay:1.0s" d="M 6,184 L 214,36"/>
+                    <path id="rMission" class="mp-maj draw-anim" style="--dl:258;--dur:1.1s;--delay:1.2s" d="M 4,190 L 210,50"/>
+                    <path id="rVanNess" class="mp-maj draw-anim" style="--dl:192;--dur:1.0s;--delay:1.4s" d="M 117,0 L 113,190"/>
+                    <path id="rGeary"   class="mp-maj draw-anim" style="--dl:222;--dur:1.0s;--delay:1.6s" d="M 0,67 L 220,67"/>
+                    <path id="rEmb"     class="mp-maj draw-anim" style="--dl:222;--dur:1.3s;--delay:.85s"  d="M 208,2 Q 218,95 213,168 L 200,188"/>
+                    <path id="rFwy"     class="mp-maj draw-anim" style="--dl:200;--dur:1.0s;--delay:1.8s" d="M 182,0 L 185,94 L 176,190"/>
+                    <!-- Street labels -->
+                    <text class="ml" x="110" y="110" transform="rotate(-35,110,110)">MARKET ST</text>
+                    <text class="ml" x="122" y="104">VAN NESS</text>
+                    <text class="ml" x="6"   y="63">GEARY BLVD</text>
+                    <text class="ml" x="205" y="90"  transform="rotate(-83,205,90)">EMBARCADERO</text>
+                    <text class="ml" x="110" y="121" transform="rotate(-35,110,121)">MISSION ST</text>
+                  </svg>
+                </div>
+              </div>
+
+              <div id="lMsg">
+                <div id="msgText"></div>
+                <div id="msgQ"></div>
+                <div id="choices">
+                  <button class="cbtn cbtn-y" id="btnY">[ YES ]</button>
+                  <button class="cbtn cbtn-n" id="btnN">[ NO  ]</button>
+                </div>
+              </div>
+
+              <div class="layer" id="lSheep">
+                <div id="sheepMsg"></div>
+                <div id="sheepBaa"></div>
+              </div>
+
+              <div class="layer" id="lSecret">
+                <div id="secretHdr">/// TRUMLEY — SECURE NEURAL LINK ///</div>
+                <div id="secretLog"></div>
+                <div id="secretInput">
+                  <span id="secretPrompt">▶</span>
+                  <input type="text" id="secretQ" autocomplete="off" spellcheck="false" placeholder="ENTER QUERY...">
+                </div>
+              </div>
+
+              <div class="layer" id="lTrum">
+                <div class="t-hdr">
+                  <div class="t-avatar">T</div>
+                  <div>
+                    <div class="t-name">TRUMLEY</div>
+                    <div class="t-status">● SECURE CONNECTION ESTABLISHED</div>
+                  </div>
+                </div>
+                <div class="t-msgs" id="tMsgs"></div>
+                <div id="sitePreview">
+                  <div class="gl-window">
+                    <div class="gl-titlebar">
+                      <div class="gl-dot"></div><div class="gl-dot"></div><div class="gl-dot"></div>
+                      <span class="gl-site-name">Get Lost, SF</span>
+                      <span class="gl-poam">P.O.A.M.</span>
+                    </div>
+                    <div class="gl-body">
+                      <div class="gl-sidebar">
+                        <div class="gl-filter-head">Where to go</div>
+                        <div class="gl-tags">
+                          <span class="gl-tag">Castro</span>
+                          <span class="gl-tag" style="transform:rotate(-1deg)">Mission</span>
+                          <span class="gl-tag" style="transform:rotate(1.5deg)">Haight</span>
+                          <span class="gl-tag" style="transform:rotate(-.5deg)">North Beach</span>
+                        </div>
+                        <div class="gl-filter-head" style="margin-top:5px">What to do</div>
+                        <div class="gl-tags">
+                          <span class="gl-tag">Eat</span>
+                          <span class="gl-tag" style="transform:rotate(1deg)">Wander</span>
+                        </div>
+                      </div>
+                      <div class="gl-main">
+                        <div class="gl-card"><div class="gl-card-name">Dolores Park</div><div class="gl-card-tag">Mission · Outdoor</div></div>
+                        <div class="gl-card"><div class="gl-card-name">City Lights Books</div><div class="gl-card-tag">North Beach</div></div>
+                        <div class="gl-card"><div class="gl-card-name">Twin Peaks</div><div class="gl-card-tag">Scenic · SFesque</div></div>
+                        <div class="gl-card"><div class="gl-card-name">The Castro Theatre</div><div class="gl-card-tag">Castro · Historic</div></div>
+                      </div>
+                    </div>
+                  </div>
+                  <button id="launchBtn" onclick="window.open('https://www.getlostsf.com','_blank')">▶ LAUNCH GETLOSTSF.COM</button>
+                </div>
+              </div>
+
+            </div><!-- /screen -->
+          </div><!-- /t-screen-wrap -->
+        </div><!-- /t-body -->
+
+        <!-- Control strip -->
+        <div class="t-controls">
+          <div class="t-btngrid">
+            <div class="t-btn col-g"></div><div class="t-btn col-n"></div><div class="t-btn col-b"></div><div class="t-btn col-y"></div>
+            <div class="t-btn col-n"></div><div class="t-btn col-g"></div><div class="t-btn col-n"></div><div class="t-btn col-w"></div>
+            <div class="t-btn col-b"></div><div class="t-btn col-o"></div><div class="t-btn col-n"></div><div class="t-btn col-g"></div>
+          </div>
+
+          <div class="t-abort-wrap">
+            <div class="t-abort"></div>
+            <span class="t-abort-lbl">ABORT</span>
+          </div>
+
+          <!-- PAST knob: indicator at 7-o'clock, sweeps to 5-o'clock on approach -->
+          <div class="t-knob-wrap">
+            <div class="t-knob-frame">
+              <!--
+                ViewBox 54×54, center (27,27).
+                Arc r=22: 7-o'clock(120°SVG)=(16,46) → 5-o'clock(60°SVG)=(38,46)
+                Tick outer r=24, inner r=20.
+              -->
+              <svg class="knob-arc-svg" viewBox="0 0 54 54">
+                <!-- Range arc -->
+                <path d="M 16 46 A 22 22 0 1 1 38 46" class="k-arc"/>
+                <!-- End ticks (PST=7-o'clock, FTR=5-o'clock) -->
+                <line x1="16.0" y1="46.0" x2="19.2" y2="41.7" class="k-tick-end"/>
+                <line x1="38.0" y1="46.0" x2="34.8" y2="41.7" class="k-tick-end"/>
+                <!-- Mid ticks (9-o'clock, 12-o'clock, 3-o'clock) -->
+                <line x1="3.5"  y1="21.8" x2="7.2"  y2="22.6" class="k-tick"/>
+                <line x1="27"   y1="3"    x2="27"   y2="7"    class="k-tick"/>
+                <line x1="50.5" y1="21.8" x2="46.8" y2="22.6" class="k-tick"/>
+                <!-- Labels -->
+                <text x="12" y="54" class="k-range-lbl">PST</text>
+                <text x="42" y="54" class="k-range-lbl">FTR</text>
+              </svg>
+              <!-- Starts at 7-o'clock = rotate(-150deg) -->
+              <div class="t-knob" id="knobPast" style="transform:rotate(-150deg)"></div>
+            </div>
+            <span class="t-knob-lbl">PAST</span>
+          </div>
+
+          <!-- FUTURE knob: indicator already at 5-o'clock -->
+          <div class="t-knob-wrap">
+            <div class="t-knob-frame">
+              <svg class="knob-arc-svg" viewBox="0 0 54 54">
+                <path d="M 16 46 A 22 22 0 1 1 38 46" class="k-arc"/>
+                <line x1="16.0" y1="46.0" x2="19.2" y2="41.7" class="k-tick-end"/>
+                <line x1="38.0" y1="46.0" x2="34.8" y2="41.7" class="k-tick-end"/>
+                <line x1="3.5"  y1="21.8" x2="7.2"  y2="22.6" class="k-tick"/>
+                <line x1="27"   y1="3"    x2="27"   y2="7"    class="k-tick"/>
+                <line x1="50.5" y1="21.8" x2="46.8" y2="22.6" class="k-tick"/>
+                <text x="12" y="54" class="k-range-lbl">PST</text>
+                <text x="42" y="54" class="k-range-lbl">FTR</text>
+              </svg>
+              <!-- Starts at 5-o'clock = rotate(+150deg) -->
+              <div class="t-knob" id="knobFuture" style="transform:rotate(150deg)"></div>
+            </div>
+            <span class="t-knob-lbl">FUTURE</span>
+          </div>
+
+          <div class="t-numpad">
+            <div class="t-num">7</div><div class="t-num">8</div><div class="t-num">9</div>
+            <div class="t-num">4</div><div class="t-num">5</div><div class="t-num">6</div>
+            <div class="t-num">1</div><div class="t-num">2</div><div class="t-num">3</div>
+            <div class="t-num" style="grid-column:2">0</div>
+          </div>
+        </div>
+
+      </div><!-- /t-housing -->
+    </div><!-- /tw-bob -->
+  </div><!-- /tw -->
+
+  <div id="hint">↑ &nbsp; APPROACH TERMINAL &nbsp; ↑</div>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+const S = {IDLE:0,APPROACH:1,MAP:2,MSG:3,CHOICE:4,DONE:5};
+let state = S.IDLE;
+
+// Session-only: resets on every page load, never touches localStorage
+let _hasRejectedThisSession = false;
+let secretMode  = false;
+let pressedBtns = [];
+const GREEN_INDICES = [0, 5, 11]; // indices of col-g buttons in the 4×3 grid
+function isSheepMode(){ return _hasRejectedThisSession; }
+function setSheep()   { _hasRejectedThisSession = true; }
+function clearSheep() { _hasRejectedThisSession = false; }
+let _sheepAtChoice = false;
+
+const cur      = document.getElementById('cur');
+const tw       = document.getElementById('tw');
+const hint     = document.getElementById('hint');
+const screen   = document.getElementById('screen');
+const lBoot    = document.getElementById('lBoot');
+const lMap     = document.getElementById('lMap');
+const lMsg     = document.getElementById('lMsg');
+const lSheep   = document.getElementById('lSheep');
+const sheepMsg = document.getElementById('sheepMsg');
+const sheepBaa = document.getElementById('sheepBaa');
+const lTrum    = document.getElementById('lTrum');
+const msgText  = document.getElementById('msgText');
+const msgQ     = document.getElementById('msgQ');
+const choices  = document.getElementById('choices');
+const btnY     = document.getElementById('btnY');
+const btnN     = document.getElementById('btnN');
+const tMsgs    = document.getElementById('tMsgs');
+const sitePrev = document.getElementById('sitePreview');
+const lSecret  = document.getElementById('lSecret');
+const secretLog= document.getElementById('secretLog');
+const secretQ  = document.getElementById('secretQ');
+const launchBtn= document.getElementById('launchBtn');
+const gaugePanel = document.getElementById('gaugePanel');
+
+const isMobile = window.matchMedia('(hover:none)').matches;
+if (!isMobile) {
+  document.addEventListener('mousemove', e => {
+    cur.style.left = e.clientX+'px';
+    cur.style.top  = e.clientY+'px';
+  });
+} else { cur.style.display='none'; }
+
+/* ── Audio ── */
+let humCtx = null;
+
+function initAudioCtx(){
+  if(humCtx) return;
+  try { humCtx = new (window.AudioContext||window.webkitAudioContext)(); } catch(e){}
+}
+
+function startHum(){
+  if(!humCtx) return;
+  try {
+    const makeHum = (freq, gain) => {
+      const o = humCtx.createOscillator();
+      const g = humCtx.createGain();
+      o.type = 'sine'; o.frequency.value = freq;
+      g.gain.value = gain;
+      o.connect(g); g.connect(humCtx.destination);
+      o.start();
+    };
+    makeHum(60,    0.010); // very lite base hum
+    makeHum(120,   0.003);
+    makeHum(15734, 0.001); // barely-there scan whine
+  } catch(e){}
+}
+
+function playFootstep(t, vol){
+  if(!humCtx) return;
+  try {
+    // Low body thud
+    const thud = humCtx.createOscillator();
+    thud.type = 'sine';
+    thud.frequency.setValueAtTime(60, t);
+    thud.frequency.exponentialRampToValueAtTime(22, t+0.09);
+    const tg = humCtx.createGain();
+    tg.gain.setValueAtTime(vol, t);
+    tg.gain.exponentialRampToValueAtTime(0.001, t+0.13);
+    thud.connect(tg); tg.connect(humCtx.destination);
+    thud.start(t); thud.stop(t+0.14);
+    // Surface click
+    const click = humCtx.createOscillator();
+    click.type = 'triangle';
+    click.frequency.setValueAtTime(320+Math.random()*80, t);
+    click.frequency.exponentialRampToValueAtTime(60, t+0.035);
+    const cg = humCtx.createGain();
+    cg.gain.setValueAtTime(vol*0.18, t);
+    cg.gain.exponentialRampToValueAtTime(0.001, t+0.035);
+    click.connect(cg); cg.connect(humCtx.destination);
+    click.start(t); click.stop(t+0.04);
+  } catch(e){}
+}
+
+function playFootsteps(){
+  if(!humCtx) return;
+  const now = humCtx.currentTime;
+  // 4 steps over ~1.8s, building as you approach
+  [[0.05,0.06],[0.55,0.12],[1.05,0.18],[1.6,0.24]].forEach(([d,v])=>playFootstep(now+d,v));
+}
+
+function typeClick(){
+  if (!humCtx) return;
+  try {
+    const t = humCtx.currentTime;
+    const o = humCtx.createOscillator();
+    const g = humCtx.createGain();
+    o.type = 'sine';
+    o.frequency.value = 680 + Math.random()*240;
+    g.gain.setValueAtTime(0.10, t);
+    g.gain.linearRampToValueAtTime(0, t+0.013);
+    o.connect(g); g.connect(humCtx.destination);
+    o.start(t); o.stop(t+0.016);
+  } catch(e){}
+}
+
+/* ── Typewriter ── */
+function typewrite(el, text, speed, done, silent){
+  el.textContent='';
+  let i=0;
+  (function tick(){
+    if(i<text.length){
+      el.textContent += text[i++];
+      if(!silent) typeClick();
+      setTimeout(tick, speed);
+    } else if(done) setTimeout(done,350);
+  })();
+}
+
+/* ── Knob sweep ── */
+function sweepKnobs(){
+  const past   = document.getElementById('knobPast');
+  const future = document.getElementById('knobFuture');
+  if(!past||!future) return;
+  setTimeout(()=>{ past.style.transform   = 'rotate(150deg)'; }, 80);
+  future.style.transform = 'rotate(170deg)';
+  setTimeout(()=>{ future.style.transform = 'rotate(150deg)'; }, 300);
+}
+
+/* ── Knob drag (detune effect) ── */
+function getKnobRotation(el){
+  const m = new DOMMatrix(window.getComputedStyle(el).transform);
+  return Math.atan2(m.m12, m.m11) * 180 / Math.PI;
+}
+
+function setStaticLevel(ratio){
+  const el = document.getElementById('static');
+  if(!el) return;
+  el.style.transition = 'none';
+  el.offsetHeight; // force reflow so transition:none applies before opacity change
+  el.style.opacity = String(Math.max(0, Math.min(1, ratio)));
+}
+
+function initKnobDrag(knobEl){
+  let dragging = false;
+  let startX   = 0;
+  let startRot = 0;
+
+  knobEl.addEventListener('mousedown', e => {
+    if(state < S.APPROACH) return;
+    dragging = true;
+
+    // Snap to clicked angle immediately
+    const rect = knobEl.getBoundingClientRect();
+    const dx = e.clientX - (rect.left + rect.width / 2);
+    const dy = e.clientY - (rect.top  + rect.height / 2);
+    const clickAngle = Math.atan2(dx, -dy) * 180 / Math.PI; // 0=top, CW positive
+    startRot = Math.max(-150, Math.min(150, clickAngle));
+    knobEl.style.transition = 'none';
+    knobEl.style.transform  = 'rotate('+startRot+'deg)';
+    setStaticLevel(1 - (startRot + 150) / 300);
+
+    startX = e.clientX;
+    e.preventDefault();
+    e.stopPropagation();
+  });
+
+  document.addEventListener('mousemove', e => {
+    if(!dragging) return;
+    const dx  = e.clientX - startX;
+    const rot = Math.max(-150, Math.min(150, startRot + dx));
+    knobEl.style.transform = 'rotate('+rot+'deg)';
+    // -150=PST(full static) → +150=FTR(clear): linear map
+    const t = (rot + 150) / 300;
+    setStaticLevel(1 - t);
+  });
+
+  document.addEventListener('mouseup', () => {
+    if(!dragging) return;
+    dragging = false;
+    knobEl.style.transition = '';
+  });
+}
+
+function enableKnobDrag(){
+  ['knobPast','knobFuture'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el){ el.classList.add('draggable'); initKnobDrag(el); }
+  });
+}
+
+/* ── Button Easter Egg ── */
+function playButtonError(){
+  if(!humCtx) return;
+  try {
+    const t = humCtx.currentTime;
+    [0, 0.13, 0.26].forEach(d => {
+      const o = humCtx.createOscillator(), g = humCtx.createGain();
+      o.type = 'square'; o.frequency.value = 160;
+      g.gain.setValueAtTime(0.18, t+d);
+      g.gain.exponentialRampToValueAtTime(0.001, t+d+0.09);
+      o.connect(g); g.connect(humCtx.destination);
+      o.start(t+d); o.stop(t+d+0.1);
+    });
+  } catch(e){}
+}
+
+function playButtonUnlock(){
+  if(!humCtx) return;
+  try {
+    const t = humCtx.currentTime;
+    [220, 330, 440, 660].forEach((freq, i) => {
+      const o = humCtx.createOscillator(), g = humCtx.createGain();
+      o.type = 'sine'; o.frequency.value = freq;
+      const d = t + i * 0.09;
+      g.gain.setValueAtTime(0, d);
+      g.gain.linearRampToValueAtTime(0.13, d+0.03);
+      g.gain.exponentialRampToValueAtTime(0.001, d+0.28);
+      o.connect(g); g.connect(humCtx.destination);
+      o.start(d); o.stop(d+0.3);
+    });
+  } catch(e){}
+}
+
+function resetButtonState(){
+  document.querySelectorAll('.t-btngrid .t-btn').forEach(b => b.classList.remove('pressed','error-flash'));
+  pressedBtns = [];
+}
+
+function activateSecretTerminal(){
+  secretMode = true;
+  resetButtonState();
+  screen.classList.add('glitching');
+  setTimeout(() => {
+    screen.classList.remove('glitching');
+    lBoot.style.display = 'none';
+    lMap.style.opacity  = '0';
+    lMsg.style.opacity  = '0'; lMsg.style.pointerEvents = 'none';
+    lSheep.classList.remove('in');
+    lTrum.classList.remove('in');
+    lSecret.classList.add('in');
+    setTimeout(() => secretQ.focus(), 60);
+  }, 260);
+}
+
+function deactivateSecretTerminal(){
+  secretMode = false;
+  resetButtonState();
+  screen.classList.add('glitching');
+  setTimeout(() => {
+    screen.classList.remove('glitching');
+    lSecret.classList.remove('in');
+    secretLog.innerHTML = '';
+    secretQ.value = '';
+    if(state >= S.MAP){ lMap.style.opacity='1'; }
+  }, 260);
+}
+
+async function askTrumley(question){
+  const entry = document.createElement('div'); entry.className='sec-entry';
+  const qDiv  = document.createElement('div'); qDiv.className='sec-q'; qDiv.textContent='> '+question;
+  const aDiv  = document.createElement('div'); aDiv.className='sec-a'; aDiv.textContent='...';
+  entry.appendChild(qDiv); entry.appendChild(aDiv);
+  secretLog.appendChild(entry);
+  secretLog.scrollTop = secretLog.scrollHeight;
+  try {
+    const resp = await fetch('/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question})});
+    const data = await resp.json();
+    const answer = data.answer || 'Signal lost. Try again.';
+    aDiv.textContent = '';
+    typewrite(aDiv, answer, 22, null, false);
+  } catch(err){
+    aDiv.textContent = '[CONNECTION ERROR — is server.py running?]';
+  }
+  setTimeout(() => { secretLog.scrollTop = secretLog.scrollHeight; }, 100);
+}
+
+function initButtons(){
+  const btns = [...document.querySelectorAll('.t-btngrid .t-btn')];
+  btns.forEach((btn, i) => {
+    btn.addEventListener('click', () => {
+      if(state < S.APPROACH || secretMode) return;
+      if(pressedBtns.includes(i)) return;
+      btn.classList.add('pressed');
+      pressedBtns.push(i);
+      if(pressedBtns.length === 3){
+        const allGreen = pressedBtns.every(idx => GREEN_INDICES.includes(idx));
+        if(allGreen){
+          playButtonUnlock();
+          setTimeout(activateSecretTerminal, 350);
+        } else {
+          playButtonError();
+          btns.forEach(b => { if(b.classList.contains('pressed')) b.classList.add('error-flash'); });
+          setTimeout(resetButtonState, 650);
+        }
+      }
+    });
+  });
+}
+
+function initSecretInput(){
+  secretQ.addEventListener('keydown', e => {
+    if(e.key === 'Enter'){
+      e.preventDefault();
+      const q = secretQ.value.trim();
+      if(!q) return;
+      secretQ.value = '';
+      askTrumley(q);
+    }
+    if(e.key === 'Escape'){ e.preventDefault(); deactivateSecretTerminal(); }
+  });
+}
+
+/* ── Gauge needle slam ── */
+function getRotationDeg(el){
+  const st = window.getComputedStyle(el);
+  const mx = new DOMMatrix(st.transform);
+  return Math.atan2(mx.m12, mx.m11) * (180/Math.PI);
+}
+
+// Future positions: FREEDOM→low, EFFICIENCY→high, EXPLORE→low
+const FUTURE_ANGLES = [-118, 112, -112];
+
+function slamGauges(){
+  const needles = gaugePanel.querySelectorAll('.g-ndl-grp');
+  needles.forEach((el, i) => {
+    const cur = getRotationDeg(el);
+    // Lock current visual position, stop animation
+    el.style.transform = 'rotate('+cur+'deg)';
+    el.style.animation = 'none';
+    // Double rAF ensures the locked transform is rendered before transition fires
+    requestAnimationFrame(()=>{
+      requestAnimationFrame(()=>{
+        const delay = i * 60; // slight stagger
+        el.style.transition = 'transform '+(0.72+i*0.07)+'s cubic-bezier(.35,0,.8,0) '+delay+'ms';
+        el.style.transform  = 'rotate('+FUTURE_ANGLES[i]+'deg)';
+      });
+    });
+  });
+}
+
+/* ── Boot sequence ── */
+function showBootSequence(done){
+  const lines = [
+    '> SYSTEM INIT.............. OK',
+    '> MAPPING SF GRID.......... OK',
+    '> ROUTE ANALYSIS........... COMPLETE',
+  ];
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;justify-content:center;padding:20px;background:#060b06';
+  screen.appendChild(wrap);
+
+  let idx = 0;
+  function nextLine(){
+    if(idx >= lines.length){
+      setTimeout(()=>{
+        wrap.style.transition = 'opacity 0.3s';
+        wrap.style.opacity = '0';
+        setTimeout(()=>{ wrap.remove(); done(); }, 320);
+      }, 500);
+      return;
+    }
+    const p = document.createElement('div');
+    p.style.cssText = "font-family:'Share Tech Mono',monospace;font-size:clamp(9px,1.8vw,12px);letter-spacing:2px;color:rgba(0,255,65,.75);margin-bottom:8px;";
+    wrap.appendChild(p);
+    typewrite(p, lines[idx++], 20, nextLine, true);
+  }
+  nextLine();
+}
+
+/* ── Reset ── */
+function resetScreen(){
+  lMap.classList.remove('in');
+  lMsg.classList.remove('in');
+  lMsg.style.opacity=''; lMsg.style.pointerEvents='';
+  lSheep.classList.remove('in');
+  lTrum.classList.remove('in');
+  sitePrev.classList.remove('in');
+  launchBtn.classList.remove('show');
+  choices.classList.remove('in'); choices.style.opacity='';
+  ['rMarket','rMission','rVanNess','rGeary','rEmb','rFwy'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.classList.remove('red-road');
+  });
+  msgText.textContent=''; msgQ.textContent='';
+  sheepMsg.textContent=''; sheepBaa.textContent='';
+  tMsgs.innerHTML='';
+
+  // Restore gauge animations
+  gaugePanel.querySelectorAll('.g-ndl-grp').forEach(el=>{
+    el.style.transform=''; el.style.animation=''; el.style.transition='';
+  });
+  // Reset knobs to past positions
+  const kp=document.getElementById('knobPast');
+  const kf=document.getElementById('knobFuture');
+  if(kp){ kp.style.transition='none'; kp.style.transform='rotate(-150deg)'; }
+  if(kf){ kf.style.transition='none'; kf.style.transform='rotate(150deg)'; }
+  // Re-enable transition after reset
+  requestAnimationFrame(()=>{
+    if(kp) kp.style.transition='';
+    if(kf) kf.style.transition='';
+  });
+
+  // Restore idle breathing
+  const glowEl = document.getElementById('glow');
+  if(glowEl) glowEl.style.animation = '';
+
+  const map = document.getElementById('sfMap');
+  const clone = map.cloneNode(true);
+  map.parentNode.replaceChild(clone, map);
+
+  const staticEl = document.getElementById('static');
+  if(staticEl){ staticEl.style.transition = 'none'; staticEl.style.opacity = '0'; }
+
+  // Remove draggable class — re-added on next approach
+  ['knobPast','knobFuture'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.classList.remove('draggable');
+  });
+
+  // Reset secret terminal if open
+  if(secretMode){ secretMode=false; lSecret.classList.remove('in'); secretLog.innerHTML=''; secretQ.value=''; }
+  resetButtonState();
+
+  lBoot.classList.remove('out');
+  lBoot.style.display=''; lBoot.style.opacity='1';
+}
+
+/* ── Approach ── */
+function approach(){
+  if(state!==S.IDLE) return;
+  state=S.APPROACH;
+  hint.style.animation='none';
+  hint.style.opacity='0';
+  tw.classList.add('approached');
+  tw.style.cursor='default';
+
+  // Stop idle breathing
+  const glowEl = document.getElementById('glow');
+  if(glowEl) glowEl.style.animation = 'none';
+
+  // Audio: footsteps during walk, hum arrives with you
+  initAudioCtx();
+  playFootsteps();
+  setTimeout(startHum, 2400);
+
+  slamGauges();
+  sweepKnobs();
+  enableKnobDrag();
+
+  // Static tuning: show interference immediately, fade as knobs reach FTR
+  const staticEl = document.getElementById('static');
+  if(staticEl){ staticEl.style.transition = 'opacity 1.1s ease'; staticEl.style.opacity = '1'; }
+  setTimeout(()=>{
+    if(staticEl){ staticEl.style.transition = 'opacity 1.1s ease'; staticEl.style.opacity = '0'; }
+  }, 2200);
+
+  setTimeout(()=>{
+    screen.classList.add('glitching');
+    setTimeout(()=>screen.classList.remove('glitching'),400);
+  },2000);
+
+  setTimeout(startMap, 3200);
+}
+
+/* ── Retreat ── */
+function retreat(){
+  if(state===S.IDLE) return;
+  state=S.IDLE; // lock immediately so double-triggers can't stack
+  screen.classList.add('glitching');
+  setTimeout(()=>{
+    screen.classList.remove('glitching');
+    tw.classList.remove('approached');
+    tw.style.cursor='pointer';
+    hint.style.animation=''; hint.style.opacity=''; // breathe animation restored
+    setTimeout(()=>{
+      resetScreen();
+    },2400);
+  },350);
+}
+
+/* ── Map ── */
+function startMap(){
+  state=S.MAP;
+  lBoot.classList.add('out');
+  setTimeout(()=>{ lBoot.style.display='none'; },400);
+
+  showBootSequence(()=>{
+    lMap.classList.add('in');
+    const cityOut = document.getElementById('cityOut');
+    if(cityOut){
+      cityOut.style.strokeDasharray='1200';
+      cityOut.style.strokeDashoffset='1200';
+      cityOut.style.animation='draw 2.8s ease-out .1s forwards';
+    }
+    setTimeout(highlightRoads,3800);
+  });
+}
+
+const majorRoads=['rMarket','rVanNess','rGeary','rMission','rEmb','rFwy'];
+function highlightRoads(){
+  majorRoads.forEach((id,i)=>{
+    setTimeout(()=>{
+      const el=document.getElementById(id);
+      if(el) el.classList.add('red-road');
+    },i*280);
+  });
+  setTimeout(showMessage, majorRoads.length*280+900);
+}
+
+/* ── Message ── */
+function showMessage(){
+  state=S.MSG;
+  _sheepAtChoice=isSheepMode();
+  const mainText = _sheepAtChoice
+    ? "Oh hello, concerned sheep.\n\nWe see you've returned to the terminal."
+    : "In the not so distant future,\nthe pathways have been made efficient.\n\nEvery route optimized. Every shortcut, unique moment,\nor mind expanding adventure eradicated.\nOur sense of exploration — destroyed in the process.";
+  const questionText = _sheepAtChoice
+    ? "Have you changed your mind about following the efficient path?"
+    : "Do you want to live in a future like that?";
+  lMsg.classList.add('in');
+  typewrite(msgText, mainText, _sheepAtChoice?35:28, ()=>{
+    typewrite(msgQ, questionText, 40, ()=>{
+      choices.classList.add('in');
+      state=S.CHOICE;
+    });
+  });
+}
+
+/* ── Sheep loop ── */
+function doSheepLoop(){
+  setSheep();
+  choices.style.opacity='0';
+  lMsg.style.opacity='0'; lMsg.style.pointerEvents='none';
+  setTimeout(()=>{
+    lMap.style.opacity='0';
+    lSheep.classList.add('in');
+    typewrite(sheepMsg,'THANK YOU, CONCERNED SHEEP.',40,()=>{
+      playThreeBaas();
+      setTimeout(()=>{ sheepBaa.textContent='BAAA'; },200);
+      setTimeout(()=>{ sheepBaa.textContent='BAAA  BAAA'; },1200);
+      setTimeout(()=>{ sheepBaa.textContent='BAAA  BAAA  BAAA'; },2200);
+      setTimeout(retreat,3800);
+    });
+  },500);
+}
+
+/* ── Trumley ── */
+function doTrumley(){
+  clearSheep();
+  lMsg.style.opacity='0'; lMsg.style.pointerEvents='none';
+  screen.classList.add('glitching');
+  setTimeout(()=>{
+    screen.classList.remove('glitching');
+    lMap.style.opacity='0';
+    lTrum.style.zIndex='50';
+    lTrum.classList.add('in');
+    setTimeout(trumleyChat,400);
+  },350);
+}
+
+btnY.addEventListener('click',()=>{
+  if(state!==S.CHOICE) return;
+  state=S.DONE;
+  if(_sheepAtChoice) doTrumley(); else doSheepLoop();
+});
+btnN.addEventListener('click',()=>{
+  if(state!==S.CHOICE) return;
+  state=S.DONE;
+  if(_sheepAtChoice) doSheepLoop(); else doTrumley();
+});
+
+const trumleyLines=['Hello, concerned citizen.',"It seems like we have a lot to discuss.","I found somewhere they haven't mapped yet."];
+let tIdx=0;
+function trumleyChat(){
+  if(tIdx>=trumleyLines.length){ showSitePreview(); return; }
+  const text=trumleyLines[tIdx++];
+  const wrap=document.createElement('div');
+  const s=document.createElement('div'); s.className='t-msg-sender'; s.textContent='TRUMLEY:';
+  const t=document.createElement('div'); t.className='t-msg-text';
+  wrap.appendChild(s); wrap.appendChild(t); tMsgs.appendChild(wrap);
+  typewrite(t,text,38,()=>setTimeout(trumleyChat,700));
+}
+function showSitePreview(){
+  sitePrev.classList.add('in');
+  setTimeout(()=>{ launchBtn.classList.add('show'); },600);
+}
+
+/* ── Sheep baa audio ── */
+function playBaa(ctx,delay){
+  const t=ctx.currentTime+delay;
+  const osc=ctx.createOscillator(); osc.type='sawtooth';
+  osc.frequency.setValueAtTime(420,t);
+  osc.frequency.linearRampToValueAtTime(600,t+0.07);
+  osc.frequency.exponentialRampToValueAtTime(310,t+0.7);
+  const vibLFO=ctx.createOscillator(); vibLFO.type='sine'; vibLFO.frequency.value=9;
+  const vibGain=ctx.createGain();
+  vibGain.gain.setValueAtTime(0,t); vibGain.gain.linearRampToValueAtTime(18,t+0.15);
+  vibGain.gain.setValueAtTime(18,t+0.6); vibGain.gain.linearRampToValueAtTime(0,t+0.75);
+  vibLFO.connect(vibGain); vibGain.connect(osc.frequency);
+  const bp=ctx.createBiquadFilter(); bp.type='bandpass';
+  bp.frequency.setValueAtTime(700,t); bp.frequency.linearRampToValueAtTime(450,t+0.7); bp.Q.value=2.5;
+  const gain=ctx.createGain();
+  gain.gain.setValueAtTime(0,t); gain.gain.linearRampToValueAtTime(0.38,t+0.06);
+  gain.gain.setValueAtTime(0.35,t+0.55); gain.gain.linearRampToValueAtTime(0,t+0.82);
+  const sub=ctx.createOscillator(); sub.type='sine';
+  sub.frequency.setValueAtTime(210,t); sub.frequency.exponentialRampToValueAtTime(155,t+0.7);
+  const subGain=ctx.createGain();
+  subGain.gain.setValueAtTime(0,t); subGain.gain.linearRampToValueAtTime(0.12,t+0.06);
+  subGain.gain.linearRampToValueAtTime(0,t+0.82);
+  sub.connect(subGain); subGain.connect(ctx.destination);
+  osc.connect(bp); bp.connect(gain); gain.connect(ctx.destination);
+  vibLFO.start(t); vibLFO.stop(t+0.85);
+  osc.start(t); osc.stop(t+0.85);
+  sub.start(t); sub.stop(t+0.85);
+}
+function playThreeBaas(){
+  try{
+    const ctx=humCtx||new(window.AudioContext||window.webkitAudioContext)();
+    playBaa(ctx,0.05); playBaa(ctx,1.1); playBaa(ctx,2.15);
+  }catch(e){}
+}
+
+/* ── Input ── */
+tw.addEventListener('click', approach);
+tw.addEventListener('keydown', e=>{ if(e.target===secretQ) return; if(e.key==='Enter'||e.key===' '){ e.preventDefault(); approach(); }});
+document.addEventListener('keydown', e=>{
+  if(e.target === secretQ) return; // let the input field own its own keys
+  if(e.key==='ArrowUp'||e.key==='w'||e.key==='W'){ e.preventDefault(); approach(); }
+  if(e.key==='Escape'||e.key==='ArrowDown'||e.key==='s'||e.key==='S'){
+    e.preventDefault();
+    if(secretMode){ deactivateSecretTerminal(); return; }
+    if(state===S.APPROACH||state===S.MAP) retreat();
+  }
+});
+
+// Click outside the terminal while approached → walk away
+document.getElementById('scene').addEventListener('click', e=>{
+  if((state===S.APPROACH||state===S.MAP) && !tw.contains(e.target)) retreat();
+});
+
+let ty0=0;
+document.addEventListener('touchstart', e=>{
+  ty0=e.touches[0].clientY;
+  const t=e.touches[0];
+  const r=document.createElement('div'); r.className='ripple';
+  r.style.left=t.clientX+'px'; r.style.top=t.clientY+'px';
+  document.body.appendChild(r); setTimeout(()=>r.remove(),600);
+},{passive:true});
+document.addEventListener('touchend', e=>{ if(ty0-e.changedTouches[0].clientY>30) approach(); },{passive:true});
+tw.addEventListener('touchend', e=>{ e.preventDefault(); approach(); },{passive:false});
+
+initButtons();
+initSecretInput();
+
+})();
+</script>
+</body>
+</html>
