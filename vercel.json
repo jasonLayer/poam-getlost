@@ -2,7 +2,7 @@
   "rewrites": [
     {
       "source": "/ask",
-      "destination": "RAILWAY_URL_PLACEHOLDER/ask"
+      "destination": "https://poam-getlost.up.railway.app/ask"
     }
   ]
 }
