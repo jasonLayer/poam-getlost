@@ -178,6 +178,7 @@
     .map-wrap{flex:1;display:flex;align-items:stretch;justify-content:center;padding:4px 8px;position:relative}
     #sfMap{width:100%;height:100%;overflow:visible}
     .mp{stroke:rgba(0,255,65,.3);stroke-width:.4;fill:none;stroke-linecap:round}
+    .mp-ew,.mp-ns{opacity:0;transition:opacity .5s ease}
     .mp-maj{stroke:rgba(0,255,65,.65);stroke-width:.9;fill:none;stroke-linecap:round}
     .city-line{stroke:rgba(0,255,65,.5);stroke-width:1.2;fill:rgba(0,255,65,.025);stroke-linecap:round}
     .red-road{stroke:var(--red)!important;stroke-width:1.8!important;filter:drop-shadow(0 0 3px var(--red)) drop-shadow(0 0 7px rgba(255,37,37,.4));transition:stroke .4s ease,stroke-width .4s ease,filter .4s ease}
@@ -447,49 +448,49 @@
                 <div class="map-hdr">// SAN FRANCISCO — INFRASTRUCTURE ANALYSIS</div>
                 <div class="map-wrap">
                   <svg id="sfMap" viewBox="0 0 220 190" xmlns="http://www.w3.org/2000/svg">
-                    <!-- E-W minor streets — full width, staggered draw -->
-                    <line class="mp draw-anim" style="--dl:220;--dur:.65s;--delay:.06s" x1="0" y1="5"   x2="220" y2="5"/>
-                    <line class="mp draw-anim" style="--dl:220;--dur:.65s;--delay:.10s" x1="0" y1="14"  x2="220" y2="14"/>
-                    <line class="mp draw-anim" style="--dl:220;--dur:.65s;--delay:.14s" x1="0" y1="23"  x2="220" y2="23"/>
-                    <line class="mp draw-anim" style="--dl:220;--dur:.65s;--delay:.18s" x1="0" y1="34"  x2="220" y2="34"/>
-                    <line class="mp draw-anim" style="--dl:220;--dur:.65s;--delay:.22s" x1="0" y1="45"  x2="220" y2="45"/>
-                    <line class="mp draw-anim" style="--dl:220;--dur:.65s;--delay:.26s" x1="0" y1="56"  x2="220" y2="56"/>
-                    <line class="mp draw-anim" style="--dl:220;--dur:.65s;--delay:.30s" x1="0" y1="67"  x2="220" y2="67"/>
-                    <line class="mp draw-anim" style="--dl:220;--dur:.65s;--delay:.34s" x1="0" y1="78"  x2="220" y2="78"/>
-                    <line class="mp draw-anim" style="--dl:220;--dur:.65s;--delay:.38s" x1="0" y1="89"  x2="220" y2="89"/>
-                    <line class="mp draw-anim" style="--dl:220;--dur:.65s;--delay:.42s" x1="0" y1="100" x2="220" y2="100"/>
-                    <line class="mp draw-anim" style="--dl:220;--dur:.65s;--delay:.46s" x1="0" y1="111" x2="220" y2="111"/>
-                    <line class="mp draw-anim" style="--dl:220;--dur:.65s;--delay:.50s" x1="0" y1="122" x2="220" y2="122"/>
-                    <line class="mp draw-anim" style="--dl:220;--dur:.65s;--delay:.54s" x1="0" y1="133" x2="220" y2="133"/>
-                    <line class="mp draw-anim" style="--dl:220;--dur:.65s;--delay:.58s" x1="0" y1="144" x2="220" y2="144"/>
-                    <line class="mp draw-anim" style="--dl:220;--dur:.65s;--delay:.62s" x1="0" y1="155" x2="220" y2="155"/>
-                    <line class="mp draw-anim" style="--dl:220;--dur:.65s;--delay:.66s" x1="0" y1="166" x2="220" y2="166"/>
-                    <line class="mp draw-anim" style="--dl:220;--dur:.65s;--delay:.70s" x1="0" y1="177" x2="220" y2="177"/>
-                    <line class="mp draw-anim" style="--dl:220;--dur:.65s;--delay:.74s" x1="0" y1="188" x2="220" y2="188"/>
-                    <!-- N-S minor streets — full height -->
-                    <line class="mp draw-anim" style="--dl:190;--dur:.65s;--delay:.08s" x1="13"  y1="0" x2="13"  y2="190"/>
-                    <line class="mp draw-anim" style="--dl:190;--dur:.65s;--delay:.12s" x1="26"  y1="0" x2="26"  y2="190"/>
-                    <line class="mp draw-anim" style="--dl:190;--dur:.65s;--delay:.16s" x1="39"  y1="0" x2="39"  y2="190"/>
-                    <line class="mp draw-anim" style="--dl:190;--dur:.65s;--delay:.20s" x1="52"  y1="0" x2="52"  y2="190"/>
-                    <line class="mp draw-anim" style="--dl:190;--dur:.65s;--delay:.24s" x1="65"  y1="0" x2="65"  y2="190"/>
-                    <line class="mp draw-anim" style="--dl:190;--dur:.65s;--delay:.28s" x1="78"  y1="0" x2="78"  y2="190"/>
-                    <line class="mp draw-anim" style="--dl:190;--dur:.65s;--delay:.32s" x1="91"  y1="0" x2="91"  y2="190"/>
-                    <line class="mp draw-anim" style="--dl:190;--dur:.65s;--delay:.36s" x1="104" y1="0" x2="104" y2="190"/>
-                    <line class="mp draw-anim" style="--dl:190;--dur:.65s;--delay:.40s" x1="117" y1="0" x2="117" y2="190"/>
-                    <line class="mp draw-anim" style="--dl:190;--dur:.65s;--delay:.44s" x1="130" y1="0" x2="130" y2="190"/>
-                    <line class="mp draw-anim" style="--dl:190;--dur:.65s;--delay:.48s" x1="143" y1="0" x2="143" y2="190"/>
-                    <line class="mp draw-anim" style="--dl:190;--dur:.65s;--delay:.52s" x1="156" y1="0" x2="156" y2="190"/>
-                    <line class="mp draw-anim" style="--dl:190;--dur:.65s;--delay:.56s" x1="169" y1="0" x2="169" y2="190"/>
-                    <line class="mp draw-anim" style="--dl:190;--dur:.65s;--delay:.60s" x1="182" y1="0" x2="182" y2="190"/>
-                    <line class="mp draw-anim" style="--dl:190;--dur:.65s;--delay:.64s" x1="195" y1="0" x2="195" y2="190"/>
-                    <line class="mp draw-anim" style="--dl:190;--dur:.65s;--delay:.68s" x1="208" y1="0" x2="208" y2="190"/>
-                    <!-- Major roads — drawn on top, highlighted red by JS -->
-                    <path id="rMarket"  class="mp-maj draw-anim" style="--dl:258;--dur:1.1s;--delay:1.0s" d="M 6,184 L 214,36"/>
-                    <path id="rMission" class="mp-maj draw-anim" style="--dl:258;--dur:1.1s;--delay:1.2s" d="M 4,190 L 210,50"/>
-                    <path id="rVanNess" class="mp-maj draw-anim" style="--dl:192;--dur:1.0s;--delay:1.4s" d="M 117,0 L 113,190"/>
-                    <path id="rGeary"   class="mp-maj draw-anim" style="--dl:222;--dur:1.0s;--delay:1.6s" d="M 0,67 L 220,67"/>
-                    <path id="rEmb"     class="mp-maj draw-anim" style="--dl:222;--dur:1.3s;--delay:.85s"  d="M 208,2 Q 218,95 213,168 L 200,188"/>
-                    <path id="rFwy"     class="mp-maj draw-anim" style="--dl:200;--dur:1.0s;--delay:1.8s" d="M 182,0 L 185,94 L 176,190"/>
+                    <!-- E-W minor streets — opacity controlled by PAST knob -->
+                    <line class="mp mp-ew" x1="0" y1="5"   x2="220" y2="5"/>
+                    <line class="mp mp-ew" x1="0" y1="14"  x2="220" y2="14"/>
+                    <line class="mp mp-ew" x1="0" y1="23"  x2="220" y2="23"/>
+                    <line class="mp mp-ew" x1="0" y1="34"  x2="220" y2="34"/>
+                    <line class="mp mp-ew" x1="0" y1="45"  x2="220" y2="45"/>
+                    <line class="mp mp-ew" x1="0" y1="56"  x2="220" y2="56"/>
+                    <line class="mp mp-ew" x1="0" y1="67"  x2="220" y2="67"/>
+                    <line class="mp mp-ew" x1="0" y1="78"  x2="220" y2="78"/>
+                    <line class="mp mp-ew" x1="0" y1="89"  x2="220" y2="89"/>
+                    <line class="mp mp-ew" x1="0" y1="100" x2="220" y2="100"/>
+                    <line class="mp mp-ew" x1="0" y1="111" x2="220" y2="111"/>
+                    <line class="mp mp-ew" x1="0" y1="122" x2="220" y2="122"/>
+                    <line class="mp mp-ew" x1="0" y1="133" x2="220" y2="133"/>
+                    <line class="mp mp-ew" x1="0" y1="144" x2="220" y2="144"/>
+                    <line class="mp mp-ew" x1="0" y1="155" x2="220" y2="155"/>
+                    <line class="mp mp-ew" x1="0" y1="166" x2="220" y2="166"/>
+                    <line class="mp mp-ew" x1="0" y1="177" x2="220" y2="177"/>
+                    <line class="mp mp-ew" x1="0" y1="188" x2="220" y2="188"/>
+                    <!-- N-S minor streets — opacity controlled by FUTURE knob -->
+                    <line class="mp mp-ns" x1="13"  y1="0" x2="13"  y2="190"/>
+                    <line class="mp mp-ns" x1="26"  y1="0" x2="26"  y2="190"/>
+                    <line class="mp mp-ns" x1="39"  y1="0" x2="39"  y2="190"/>
+                    <line class="mp mp-ns" x1="52"  y1="0" x2="52"  y2="190"/>
+                    <line class="mp mp-ns" x1="65"  y1="0" x2="65"  y2="190"/>
+                    <line class="mp mp-ns" x1="78"  y1="0" x2="78"  y2="190"/>
+                    <line class="mp mp-ns" x1="91"  y1="0" x2="91"  y2="190"/>
+                    <line class="mp mp-ns" x1="104" y1="0" x2="104" y2="190"/>
+                    <line class="mp mp-ns" x1="117" y1="0" x2="117" y2="190"/>
+                    <line class="mp mp-ns" x1="130" y1="0" x2="130" y2="190"/>
+                    <line class="mp mp-ns" x1="143" y1="0" x2="143" y2="190"/>
+                    <line class="mp mp-ns" x1="156" y1="0" x2="156" y2="190"/>
+                    <line class="mp mp-ns" x1="169" y1="0" x2="169" y2="190"/>
+                    <line class="mp mp-ns" x1="182" y1="0" x2="182" y2="190"/>
+                    <line class="mp mp-ns" x1="195" y1="0" x2="195" y2="190"/>
+                    <line class="mp mp-ns" x1="208" y1="0" x2="208" y2="190"/>
+                    <!-- Major roads — draw-anim, highlighted red by JS -->
+                    <path id="rMarket"  class="mp-maj draw-anim" style="--dl:258;--dur:.55s;--delay:.1s"  d="M 6,184 L 214,36"/>
+                    <path id="rMission" class="mp-maj draw-anim" style="--dl:258;--dur:.55s;--delay:.2s"  d="M 4,190 L 210,50"/>
+                    <path id="rVanNess" class="mp-maj draw-anim" style="--dl:192;--dur:.5s;--delay:.3s"   d="M 117,0 L 113,190"/>
+                    <path id="rGeary"   class="mp-maj draw-anim" style="--dl:222;--dur:.5s;--delay:.4s"   d="M 0,67 L 220,67"/>
+                    <path id="rEmb"     class="mp-maj draw-anim" style="--dl:222;--dur:.65s;--delay:.05s" d="M 208,2 Q 218,95 213,168 L 200,188"/>
+                    <path id="rFwy"     class="mp-maj draw-anim" style="--dl:200;--dur:.5s;--delay:.5s"   d="M 182,0 L 185,94 L 176,190"/>
                     <!-- Street labels -->
                     <text class="ml" x="110" y="110" transform="rotate(-35,110,110)">MARKET ST</text>
                     <text class="ml" x="122" y="104">VAN NESS</text>
@@ -780,14 +781,17 @@ function typewrite(el, text, speed, done, silent){
   })();
 }
 
-/* ── Knob sweep ── */
+/* ── Knob sweep — "finding the signal", both converge on center ── */
 function sweepKnobs(){
   const past   = document.getElementById('knobPast');
   const future = document.getElementById('knobFuture');
   if(!past||!future) return;
-  setTimeout(()=>{ past.style.transform   = 'rotate(150deg)'; }, 80);
-  future.style.transform = 'rotate(170deg)';
-  setTimeout(()=>{ future.style.transform = 'rotate(150deg)'; }, 300);
+  // PAST sweeps from -150° toward center
+  past.style.transition = 'transform 2.8s cubic-bezier(.2,0,.45,.95)';
+  setTimeout(()=>{ past.style.transform = 'rotate(-5deg)'; }, 80);
+  // FUTURE sweeps from +150° toward center with slight offset for realism
+  future.style.transition = 'transform 2.6s cubic-bezier(.2,0,.45,.95)';
+  setTimeout(()=>{ future.style.transform = 'rotate(8deg)'; }, 200);
 }
 
 /* ── Knob drag (detune effect) ── */
@@ -802,6 +806,29 @@ function setStaticLevel(ratio){
   el.style.transition = 'none';
   el.offsetHeight; // force reflow so transition:none applies before opacity change
   el.style.opacity = String(Math.max(0, Math.min(1, ratio)));
+}
+
+// angle -150..+150; center(0°) = full opacity, extremes = invisible
+function setKnobMapLines(knobId, angle){
+  const opacity = Math.max(0, 1 - Math.abs(angle) / 150);
+  const sel = knobId === 'knobPast' ? '.mp-ew' : '.mp-ns';
+  document.querySelectorAll(sel).forEach(el => { el.style.opacity = opacity; });
+}
+
+function updateMapLinesFromKnobs(){
+  const past   = document.getElementById('knobPast');
+  const future = document.getElementById('knobFuture');
+  if(!past||!future) return;
+  const pa = getRotationDeg(past);
+  const fa = getRotationDeg(future);
+  document.querySelectorAll('.mp-ew').forEach(el => {
+    el.style.transition = 'opacity 1.4s ease';
+    el.style.opacity    = Math.max(0, 1 - Math.abs(pa) / 150);
+  });
+  document.querySelectorAll('.mp-ns').forEach(el => {
+    el.style.transition = 'opacity 1.6s ease';
+    el.style.opacity    = Math.max(0, 1 - Math.abs(fa) / 150);
+  });
 }
 
 function initKnobDrag(knobEl){
@@ -821,7 +848,7 @@ function initKnobDrag(knobEl){
     startRot = Math.max(-150, Math.min(150, clickAngle));
     knobEl.style.transition = 'none';
     knobEl.style.transform  = 'rotate('+startRot+'deg)';
-    setStaticLevel(1 - (startRot + 150) / 300);
+    setKnobMapLines(knobEl.id, startRot);
 
     startX = e.clientX;
     e.preventDefault();
@@ -833,9 +860,7 @@ function initKnobDrag(knobEl){
     const dx  = e.clientX - startX;
     const rot = Math.max(-150, Math.min(150, startRot + dx));
     knobEl.style.transform = 'rotate('+rot+'deg)';
-    // -150=PST(full static) → +150=FTR(clear): linear map
-    const t = (rot + 150) / 300;
-    setStaticLevel(1 - t);
+    setKnobMapLines(knobEl.id, rot);
   });
 
   document.addEventListener('mouseup', () => {
@@ -1150,13 +1175,8 @@ function startMap(){
 
   showBootSequence(()=>{
     lMap.classList.add('in');
-    const cityOut = document.getElementById('cityOut');
-    if(cityOut){
-      cityOut.style.strokeDasharray='1200';
-      cityOut.style.strokeDashoffset='1200';
-      cityOut.style.animation='draw 2.8s ease-out .1s forwards';
-    }
-    setTimeout(highlightRoads,3800);
+    updateMapLinesFromKnobs(); // fade in grid lines based on knob positions
+    setTimeout(highlightRoads, 1800);
   });
 }
 
@@ -1166,9 +1186,9 @@ function highlightRoads(){
     setTimeout(()=>{
       const el=document.getElementById(id);
       if(el) el.classList.add('red-road');
-    },i*280);
+    },i*130);
   });
-  setTimeout(showMessage, majorRoads.length*280+900);
+  setTimeout(showMessage, majorRoads.length*130+500);
 }
 
 /* ── Message ── */
