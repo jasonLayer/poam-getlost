@@ -808,11 +808,16 @@ function setStaticLevel(ratio){
   el.style.opacity = String(Math.max(0, Math.min(1, ratio)));
 }
 
-// angle -150..+150; center(0°) = full opacity, extremes = invisible
+// angle -150..+150; center(0°) = full lines/no static, extremes = no lines/full static
 function setKnobMapLines(knobId, angle){
-  const opacity = Math.max(0, 1 - Math.abs(angle) / 150);
+  const lineOpacity = Math.max(0, 1 - Math.abs(angle) / 150);
+  const staticRatio = Math.abs(angle) / 150;
   const sel = knobId === 'knobPast' ? '.mp-ew' : '.mp-ns';
-  document.querySelectorAll(sel).forEach(el => { el.style.opacity = opacity; });
+  document.querySelectorAll(sel).forEach(el => {
+    el.style.transition = 'none'; // instant during drag
+    el.style.opacity = lineOpacity;
+  });
+  setStaticLevel(staticRatio * 0.6); // fuzz returns as knob leaves center
 }
 
 function updateMapLinesFromKnobs(){
@@ -867,6 +872,11 @@ function initKnobDrag(knobEl){
     if(!dragging) return;
     dragging = false;
     knobEl.style.transition = '';
+    // Restore smooth transition on lines after drag ends
+    document.querySelectorAll('.mp-ew,.mp-ns').forEach(el => { el.style.transition = 'opacity .4s ease'; });
+    // Fade static back out when knob released
+    const staticEl = document.getElementById('static');
+    if(staticEl){ staticEl.style.transition = 'opacity .6s ease'; staticEl.style.opacity = '0'; }
   });
 }
 
