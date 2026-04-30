@@ -841,16 +841,31 @@ function updateKnobLed(knobId, angle){
   led.classList.toggle('on', Math.abs(angle) < 12);
 }
 
+// Compute static level from both knob positions (max detune wins)
+function syncStaticToKnobs(smooth){
+  const past   = document.getElementById('knobPast');
+  const future = document.getElementById('knobFuture');
+  if(!past || !future) return;
+  const pa = Math.abs(getRotationDeg(past))   / 150;
+  const fa = Math.abs(getRotationDeg(future)) / 150;
+  const ratio = Math.max(pa, fa);
+  const staticEl = document.getElementById('static');
+  if(staticEl){
+    staticEl.style.transition = smooth ? 'opacity .5s ease' : 'none';
+    if(!smooth) staticEl.offsetHeight; // force reflow
+    staticEl.style.opacity = String(Math.min(0.75, ratio * 0.75));
+  }
+}
+
 // angle -150..+150; center(0°) = full lines/no static, extremes = no lines/full static
 function setKnobMapLines(knobId, angle){
   const lineOpacity = Math.max(0, 1 - Math.abs(angle) / 150);
-  const staticRatio = Math.abs(angle) / 150;
   const sel = knobId === 'knobPast' ? '.mp-ew' : '.mp-ns';
   document.querySelectorAll(sel).forEach(el => {
     el.style.transition = 'none'; // instant during drag
     el.style.opacity = lineOpacity;
   });
-  setStaticLevel(staticRatio * 0.6);
+  syncStaticToKnobs(false); // instant during drag, accounts for both knobs
   updateKnobLed(knobId, angle);
 }
 
@@ -870,6 +885,7 @@ function updateMapLinesFromKnobs(){
   });
   updateKnobLed('knobPast',   pa);
   updateKnobLed('knobFuture', fa);
+  syncStaticToKnobs(true); // sync static on boot (knobs at 0° → static = 0)
 }
 
 function initKnobDrag(knobEl){
@@ -910,9 +926,8 @@ function initKnobDrag(knobEl){
     knobEl.style.transition = '';
     // Restore smooth transition on lines after drag ends
     document.querySelectorAll('.mp-ew,.mp-ns').forEach(el => { el.style.transition = 'opacity .4s ease'; });
-    // Fade static back out when knob released
-    const staticEl = document.getElementById('static');
-    if(staticEl){ staticEl.style.transition = 'opacity .6s ease'; staticEl.style.opacity = '0'; }
+    // Set static based on where knobs actually ended up — not always zero
+    syncStaticToKnobs(true);
   });
 }
 
