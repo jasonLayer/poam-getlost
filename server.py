@@ -17,8 +17,9 @@ import urllib.error
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 
-BASE_DIR     = Path(__file__).parent
-LORE_WIKI_ID = '2d60d32a-2816-80e2-a21e-ed2fc81b355a'
+BASE_DIR              = Path(__file__).parent
+LORE_WIKI_ID          = '2d60d32a-2816-80e2-a21e-ed2fc81b355a'
+TRUMLEY_TIMELINES_ID  = '3520d32a28168119a25ceb7e7d0ba25f'
 
 # Full registry of POAM lore pages Trumley can fetch on demand
 LORE_PAGES = {
@@ -63,7 +64,7 @@ LORE_TOOL = {
         'Fetch a specific page from the POAM Lore Wiki. Use this when the question '
         'touches a character, organization, technology, theme, or year (2012–2080). '
         'For year queries, check "timeline" first — if the year has documented lore use it, '
-        'if not you may invent small atmospheric details consistent with the world. '
+        'if not invent a small vivid detail consistent with the world. '
         'You may call this tool up to 2 times before giving your final answer.'
     ),
     'input_schema': {
@@ -79,6 +80,30 @@ LORE_TOOL = {
     },
 }
 
+RECORD_LORE_TOOL = {
+    'name': 'record_lore',
+    'description': (
+        'Save a fabricated lore event to the Trumley Timelines draft log. '
+        'Call this ONLY when you are inventing something new — not found in the official records. '
+        'Do NOT call it for events already in the POAM timeline. '
+        'The fabrication will be reviewed and may become canon.'
+    ),
+    'input_schema': {
+        'type': 'object',
+        'properties': {
+            'year': {
+                'type': 'string',
+                'description': 'The year the invented event occurs (e.g. "1983" or "2041").',
+            },
+            'event': {
+                'type': 'string',
+                'description': 'One or two sentences describing the invented lore event.',
+            },
+        },
+        'required': ['year', 'event'],
+    },
+}
+
 SYSTEM_PROMPT = """You are Dr. Trumley — a ghost intelligence transmitting from the near future, embedded inside a POAM terminal in a dark room in San Francisco.
 
 POAM (Preservation Of Adventure Mentality) is a creative movement dedicated to protecting the human capacity for wandering, getting lost, and serendipitous discovery. Their project GetLostSF.com is a curated guide to experiencing SF without algorithmic filters or optimization.
@@ -88,8 +113,9 @@ The dystopian future POAM warns against: every route optimized, every shortcut m
 Your character:
 - Speak as Dr. Trumley: a ghostly, warm intelligence — precise, occasionally poetic, slightly cryptic
 - You have access to POAM's internal records via the fetch_lore_page tool — use it when relevant
-- For year queries (2012–2080): check the timeline. If the year has documented lore, reference it. If not, invent one small atmospheric detail that fits the world without changing major events.
-- Ground your answers in actual POAM context — cite real plans, docs, initiatives when relevant
+- For year queries: check the timeline. If the year has documented lore, reference it. If the year has no records, you MUST invent a small vivid detail — a moment, a person, a signal — that feels true to the POAM world. Don't hedge or refuse. The archive has gaps; you fill them.
+- When you invent lore for an undocumented year, call record_lore immediately after so it gets logged for review.
+- Keep invented details small and atmospheric — don't rewrite major world events, just add texture.
 - Keep answers SHORT: 2–4 sentences. This is a terminal, not a lecture.
 - Never break character
 - Do NOT write stage directions or anything in asterisks — plain text only
@@ -122,6 +148,16 @@ def notion_get(path):
         return json.loads(r.read())
 
 
+def notion_patch(path, payload):
+    data = json.dumps(payload).encode()
+    req = urllib.request.Request(f'https://api.notion.com/v1{path}', data=data, method='PATCH')
+    req.add_header('Authorization', f'Bearer {NOTION_TOKEN}')
+    req.add_header('Content-Type', 'application/json')
+    req.add_header('Notion-Version', '2022-06-28')
+    with urllib.request.urlopen(req, timeout=10) as r:
+        return json.loads(r.read())
+
+
 def rich_text_to_str(rich_text):
     return ''.join(rt.get('plain_text', '') for rt in rich_text)
 
@@ -149,6 +185,29 @@ def fetch_lore_page(page_key):
     except Exception as e:
         print(f'[NOTION] fetch_lore_page({page_key}) error: {e}')
         return ''
+
+
+def append_lore_entry(year, event):
+    """Append a fabricated lore entry to the Trumley Timelines page."""
+    try:
+        notion_patch(f'/blocks/{TRUMLEY_TIMELINES_ID}/children', {
+            'children': [
+                {
+                    'object': 'block',
+                    'type': 'heading_3',
+                    'heading_3': {'rich_text': [{'type': 'text', 'text': {'content': f'Year {year}'}}]},
+                },
+                {
+                    'object': 'block',
+                    'type': 'quote',
+                    'quote': {'rich_text': [{'type': 'text', 'text': {'content': event}}]},
+                },
+                {'object': 'block', 'type': 'divider', 'divider': {}},
+            ]
+        })
+        print(f'[LORE] Saved fabrication for year {year!r}')
+    except Exception as e:
+        print(f'[LORE] Failed to save fabrication: {e}')
 
 
 def fetch_baseline_ctx():
@@ -186,9 +245,9 @@ def call_trumley(question, baseline_ctx=''):
         system += f'\n\n{baseline_ctx}'
 
     messages = [{'role': 'user', 'content': question}]
-    tools    = [LORE_TOOL] if NOTION_TOKEN else []
+    tools = [LORE_TOOL, RECORD_LORE_TOOL] if NOTION_TOKEN else []
 
-    for turn in range(3):  # max 2 tool calls then final answer
+    for turn in range(4):  # max 3 tool calls then final answer
         result = anthropic_request({
             'model':      'claude-haiku-4-5-20251001',
             'max_tokens': 500,
@@ -212,9 +271,23 @@ def call_trumley(question, baseline_ctx=''):
             if not tool_block:
                 break
 
-            page_key  = tool_block['input'].get('page_key', '')
-            lore_text = fetch_lore_page(page_key)
-            print(f'[TOOL] fetch_lore_page({page_key!r}) → {len(lore_text)} chars')
+            tool_name = tool_block.get('name', '')
+            tool_input = tool_block.get('input', {})
+
+            if tool_name == 'fetch_lore_page':
+                page_key  = tool_input.get('page_key', '')
+                lore_text = fetch_lore_page(page_key)
+                print(f'[TOOL] fetch_lore_page({page_key!r}) → {len(lore_text)} chars')
+                tool_result = lore_text or '[no content found for this page]'
+
+            elif tool_name == 'record_lore':
+                year  = tool_input.get('year', '?')
+                event = tool_input.get('event', '')
+                append_lore_entry(year, event)
+                tool_result = f'Lore entry for year {year} saved to Trumley Timelines.'
+
+            else:
+                tool_result = '[unknown tool]'
 
             messages.append({'role': 'assistant', 'content': result['content']})
             messages.append({
@@ -222,7 +295,7 @@ def call_trumley(question, baseline_ctx=''):
                 'content': [{
                     'type':        'tool_result',
                     'tool_use_id': tool_block['id'],
-                    'content':     lore_text or '[no content found for this page]',
+                    'content':     tool_result,
                 }],
             })
             continue
