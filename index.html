@@ -134,7 +134,8 @@
 
     /* ABORT */
     .t-abort-wrap{display:flex;flex-direction:column;align-items:center;gap:3px;flex-shrink:0}
-    .t-abort{width:40px;height:40px;border-radius:50%;background:radial-gradient(circle at 35% 32%,#f24040,#7a0e0e);border:2px solid #520808;box-shadow:0 4px 8px rgba(54,6,6,.8),inset 0 -2px 3px rgba(0,0,0,.45),0 0 4px rgba(180,0,0,.2)}
+    .t-abort{width:40px;height:40px;border-radius:50%;background:radial-gradient(circle at 35% 32%,#f24040,#7a0e0e);border:2px solid #520808;box-shadow:0 4px 8px rgba(54,6,6,.8),inset 0 -2px 3px rgba(0,0,0,.45),0 0 4px rgba(180,0,0,.2);transition:box-shadow .12s ease,transform .12s ease,background .12s ease}
+    .t-abort.pressed{background:radial-gradient(circle at 42% 48%,#b02828,#4a0808);box-shadow:0 1px 2px rgba(54,6,6,.5),inset 0 4px 8px rgba(0,0,0,.7),inset 0 1px 3px rgba(0,0,0,.5);transform:scale(0.91) translateY(2px)}
     .t-abort-lbl{font-family:'Share Tech Mono',monospace;font-size:5.5px;letter-spacing:1.5px;color:var(--h-dp);text-transform:uppercase}
 
     /* Knob frame with arc ticks */
@@ -940,6 +941,33 @@ function enableKnobDrag(){
 }
 
 /* ── Button Easter Egg ── */
+function playAbortClick(){
+  if(!humCtx) return;
+  try {
+    const t = humCtx.currentTime;
+    // Low thud
+    const o = humCtx.createOscillator(), g = humCtx.createGain();
+    o.type = 'sine';
+    o.frequency.setValueAtTime(95, t);
+    o.frequency.exponentialRampToValueAtTime(28, t + 0.09);
+    g.gain.setValueAtTime(0.55, t);
+    g.gain.exponentialRampToValueAtTime(0.001, t + 0.13);
+    o.connect(g); g.connect(humCtx.destination);
+    o.start(t); o.stop(t + 0.14);
+    // Physical click transient (noise burst)
+    const bufLen = Math.floor(humCtx.sampleRate * 0.045);
+    const buf = humCtx.createBuffer(1, bufLen, humCtx.sampleRate);
+    const ch = buf.getChannelData(0);
+    for(let i = 0; i < bufLen; i++) ch[i] = (Math.random() * 2 - 1) * (1 - i / bufLen);
+    const ns = humCtx.createBufferSource(), ng = humCtx.createGain();
+    ns.buffer = buf;
+    ng.gain.setValueAtTime(0.28, t);
+    ng.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+    ns.connect(ng); ng.connect(humCtx.destination);
+    ns.start(t); ns.stop(t + 0.05);
+  } catch(e){}
+}
+
 function playButtonError(){
   if(!humCtx) return;
   try {
@@ -1153,6 +1181,9 @@ function initNumpad(){
   if(abortEl){
     abortEl.addEventListener('click', () => {
       if(state < S.APPROACH) return;
+      playAbortClick();
+      abortEl.classList.add('pressed');
+      setTimeout(() => abortEl.classList.remove('pressed'), 150);
       if(dateMode){ dismissDateMode(); return; }
       numDigits = [];
       numDisplayUpdate();
