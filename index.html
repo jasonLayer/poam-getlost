@@ -1221,7 +1221,7 @@ async function showDateQuery(digits){
           screen.classList.remove('glitching');
           dismissDateMode(true);
         }, 350);
-      }, 60000);
+      }, 30000);
     }, false);
   } catch(err){
     dateLog.textContent = '[TRANSMISSION FAILED — is server.py running?]';
