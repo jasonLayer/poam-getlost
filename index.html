@@ -307,6 +307,31 @@
     }
     .glitching::before{content:'';position:absolute;inset:0;background:rgba(0,255,65,.1);animation:glitch .12s steps(1) 4;z-index:95}
 
+    /* Abort CRT roll-off / flicker-on */
+    @keyframes abortRollOff{
+      0%  {transform:scaleY(1) translateY(0);   filter:brightness(1)}
+      12% {transform:scaleY(1) translateY(-8px);filter:brightness(1.4)}
+      22% {transform:scaleY(1) translateY(10px);filter:brightness(0.8)}
+      32% {transform:scaleY(1) translateY(-5px);filter:brightness(1.1)}
+      45% {transform:scaleY(0.15) translateY(0);filter:brightness(2)}
+      62% {transform:scaleY(0.03);              filter:brightness(2.5)}
+      78% {transform:scaleY(0.01);              filter:brightness(0)}
+      100%{transform:scaleY(0);                 filter:brightness(0)}
+    }
+    @keyframes abortFlickerOn{
+      0%  {transform:scaleY(0);   filter:brightness(0)}
+      10% {transform:scaleY(0.04);filter:brightness(4)}
+      20% {transform:scaleY(1);   filter:brightness(2)}
+      30% {                       filter:brightness(0.4)}
+      45% {                       filter:brightness(1.6)}
+      58% {                       filter:brightness(0.7)}
+      72% {                       filter:brightness(1.2)}
+      85% {                       filter:brightness(0.9)}
+      100%{transform:scaleY(1);   filter:brightness(1)}
+    }
+    #screen.abort-off{animation:abortRollOff 0.5s ease-in forwards}
+    #screen.abort-on {animation:abortFlickerOn 0.8s ease-out forwards}
+
     /* Ripple */
     .ripple{position:fixed;width:36px;height:36px;border-radius:50%;border:1.5px solid var(--p);pointer-events:none;z-index:9998;animation:rippleOut .55s ease-out forwards}
     @keyframes rippleOut{from{transform:translate(-50%,-50%) scale(0);opacity:.7}to{transform:translate(-50%,-50%) scale(2.5);opacity:0}}
@@ -968,6 +993,28 @@ function playAbortClick(){
   } catch(e){}
 }
 
+function playAbortAnimation(onBlack, onComplete){
+  const scr = document.getElementById('screen');
+  if(!scr){ onBlack && onBlack(); onComplete && onComplete(); return; }
+  // Phase 1: roll off
+  scr.classList.remove('abort-on');
+  scr.classList.add('abort-off');
+  setTimeout(() => {
+    // Content reset happens while screen is black/invisible
+    onBlack && onBlack();
+    scr.classList.remove('abort-off');
+    // Brief black gap before flickering back on
+    setTimeout(() => {
+      scr.classList.add('abort-on');
+      scr.addEventListener('animationend', function handler(){
+        scr.removeEventListener('animationend', handler);
+        scr.classList.remove('abort-on');
+        onComplete && onComplete();
+      });
+    }, 80);
+  }, 520);
+}
+
 function playButtonError(){
   if(!humCtx) return;
   try {
@@ -1184,9 +1231,18 @@ function initNumpad(){
       playAbortClick();
       abortEl.classList.add('pressed');
       setTimeout(() => abortEl.classList.remove('pressed'), 150);
-      if(dateMode){ dismissDateMode(); return; }
-      numDigits = [];
-      numDisplayUpdate();
+      playAbortAnimation(
+        () => {
+          // Reset state while screen is black
+          if(dateMode) dismissDateMode(false);
+          numDigits = [];
+          numDisplayUpdate();
+        },
+        () => {
+          // Screen has flickered back on — show question if we're in map state
+          if(state >= S.MAP && state < S.MSG) showMessage();
+        }
+      );
     });
   }
 }
