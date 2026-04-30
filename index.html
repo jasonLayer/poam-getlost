@@ -701,6 +701,7 @@
 
 const S = {IDLE:0,APPROACH:1,MAP:2,MSG:3,CHOICE:4,DONE:5};
 let state = S.IDLE;
+let _twGen = 0; // increment to cancel all in-flight typewriters
 
 // Session-only: resets on every page load, never touches localStorage
 let _hasRejectedThisSession = false;
@@ -825,7 +826,9 @@ function typeClick(){
 function typewrite(el, text, speed, done, silent){
   el.textContent='';
   let i=0;
+  const gen = _twGen;
   (function tick(){
+    if(_twGen !== gen) return;
     if(i<text.length){
       el.textContent += text[i++];
       if(!silent) typeClick();
@@ -991,6 +994,31 @@ function playAbortClick(){
     ns.connect(ng); ng.connect(humCtx.destination);
     ns.start(t); ns.stop(t + 0.05);
   } catch(e){}
+}
+
+function stopAllAudio(){
+  if(humCtx){ try{ humCtx.close(); }catch(e){} humCtx = null; }
+  initAudioCtx();
+  startHum();
+}
+
+function resetToQuestion(){
+  _twGen++;
+  if(dateAutoTimer){ clearTimeout(dateAutoTimer); dateAutoTimer = null; }
+  dateMode = false; numDigits = [];
+  const nd = document.getElementById('numDisplay');
+  if(nd){ nd.textContent='____'; nd.classList.remove('active'); }
+  lDate.classList.remove('in');
+  lMsg.classList.remove('in'); lMsg.style.opacity=''; lMsg.style.pointerEvents='';
+  lTrum.classList.remove('in'); lTrum.style.zIndex='';
+  lSheep.classList.remove('in');
+  if(secretMode){ secretMode=false; lSecret.classList.remove('in'); }
+  choices.classList.remove('in'); choices.style.opacity='';
+  msgText.textContent=''; msgQ.textContent='';
+  sheepMsg.textContent=''; sheepBaa.textContent='';
+  tMsgs.innerHTML='';
+  lMap.style.opacity='1';
+  state = S.MAP;
 }
 
 function playAbortAnimation(onBlack, onComplete){
@@ -1228,20 +1256,13 @@ function initNumpad(){
   if(abortEl){
     abortEl.addEventListener('click', () => {
       if(state < S.APPROACH) return;
+      stopAllAudio();
       playAbortClick();
       abortEl.classList.add('pressed');
       setTimeout(() => abortEl.classList.remove('pressed'), 150);
       playAbortAnimation(
-        () => {
-          // Reset state while screen is black
-          if(dateMode) dismissDateMode(false);
-          numDigits = [];
-          numDisplayUpdate();
-        },
-        () => {
-          // Screen has flickered back on — show question if we're in map state
-          if(state >= S.MAP && state < S.MSG) showMessage();
-        }
+        () => { resetToQuestion(); },
+        () => { showMessage(); }
       );
     });
   }
