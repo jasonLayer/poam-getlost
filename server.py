@@ -25,7 +25,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 
 BASE_DIR = Path(__file__).parent
-POAM_HQ_ID = '2d50d32a-2816-812b-8855-dc198be78feb'
+LORE_WIKI_ID = '2d60d32a-2816-80e2-a21e-ed2fc81b355a'
 
 
 def load_env():
@@ -108,26 +108,47 @@ def page_title(page):
     return rich_text_to_str(page.get('title', []))
 
 
-def fetch_notion_context(question):
-    """Search POAM Notion for content relevant to the question, plus HQ overview."""
+def fetch_lore_wiki_context(question):
+    """Fetch context from POAM Lore Wiki root + sub-pages, plus keyword search."""
     if not NOTION_TOKEN:
         return ''
 
     sections = []
 
-    # 1. Search across connected pages for the question
+    # 1. Always include the root Lore Wiki page content
+    try:
+        root_blocks = notion_get(f'/blocks/{LORE_WIKI_ID}/children?page_size=30')
+        root_text = blocks_to_text(root_blocks.get('results', []), max_blocks=20)
+        if root_text:
+            sections.append(f'### POAM Lore Wiki\n{root_text}')
+        # Walk child pages of the wiki root
+        for block in root_blocks.get('results', []):
+            if block.get('type') == 'child_page':
+                child_id = block['id']
+                child_title = block.get('child_page', {}).get('title', '')
+                try:
+                    child_blocks = notion_get(f'/blocks/{child_id}/children?page_size=25')
+                    child_text = blocks_to_text(child_blocks.get('results', []))
+                    if child_text:
+                        sections.append(f'### {child_title}\n{child_text}')
+                except Exception:
+                    pass
+    except Exception as e:
+        print(f'[NOTION] Lore Wiki fetch error: {e}')
+
+    # 2. Keyword search scoped to question for additional relevant pages
     try:
         results = notion_post('/search', {
             'query': question,
             'filter': {'value': 'page', 'property': 'object'},
             'page_size': 4,
         })
-        for page in results.get('results', [])[:3]:
+        for page in results.get('results', [])[:2]:
             title = page_title(page)
-            if not title:
+            if not title or any(title in s for s in sections):
                 continue
             try:
-                blocks = notion_get(f'/blocks/{page["id"]}/children?page_size=30')
+                blocks = notion_get(f'/blocks/{page["id"]}/children?page_size=25')
                 text = blocks_to_text(blocks.get('results', []))
                 if text:
                     sections.append(f'### {title}\n{text}')
@@ -136,19 +157,14 @@ def fetch_notion_context(question):
     except Exception as e:
         print(f'[NOTION] search error: {e}')
 
-    # 2. Always include top-level POAM HQ blocks as grounding context
-    try:
-        hq_blocks = notion_get(f'/blocks/{POAM_HQ_ID}/children?page_size=20')
-        hq_text = blocks_to_text(hq_blocks.get('results', []), max_blocks=15)
-        if hq_text:
-            sections.insert(0, f'### POAM HQ Overview\n{hq_text}')
-    except Exception as e:
-        print(f'[NOTION] HQ fetch error: {e}')
-
     if not sections:
         return ''
 
-    return '## POAM Live Context (from Notion HQ)\n\n' + '\n\n'.join(sections)
+    return '## POAM Lore Wiki Context\n\n' + '\n\n'.join(sections)
+
+
+def fetch_notion_context(question):
+    return fetch_lore_wiki_context(question)
 
 
 # ── HTTP Handler ─────────────────────────────────────────────────────────────

@@ -154,8 +154,13 @@
     .t-knob-lbl{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:2px;color:#7a6e58;text-transform:uppercase}
 
     /* Numpad */
-    .t-numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:3.5px;margin-left:auto}
+    .t-numpad-wrap{display:flex;flex-direction:column;align-items:center;gap:3px;margin-left:auto}
+    .t-numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:3.5px}
+    #numDisplay{font-family:'Share Tech Mono',monospace;font-size:8px;letter-spacing:2px;color:rgba(0,255,65,.28);background:rgba(0,0,0,.45);border:1px solid rgba(0,255,65,.08);padding:2px 6px;text-align:center;width:100%;transition:color .2s ease,border-color .2s ease,text-shadow .2s ease}
+    #numDisplay.active{color:var(--p);border-color:rgba(0,255,65,.4);text-shadow:0 0 6px var(--p)}
     .t-num{width:17px;height:17px;border-radius:3px;background:var(--h-sh);border:1px solid rgba(0,0,0,.32);box-shadow:0 2px 0 rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-family:'Share Tech Mono',monospace;font-size:6.5px;color:var(--h-dp)}
+    #tw.approached .t-numpad .t-num{cursor:pointer}
+    #tw.approached .t-abort{cursor:pointer}
 
     /* Hint */
     #hint{position:absolute;bottom:28px;left:50%;transform:translateX(-50%);font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:5px;color:rgba(0,255,65,.42);white-space:nowrap;z-index:20;transition:opacity .6s ease;animation:breathe 2.4s ease-in-out infinite}
@@ -217,6 +222,13 @@
     #secretPrompt{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--p);text-shadow:0 0 6px var(--p);flex-shrink:0;animation:blink 1.1s step-end infinite}
     #secretQ{flex:1;background:transparent;border:none;outline:none;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--p);caret-color:var(--p);letter-spacing:1px;cursor:text}
     #secretQ::placeholder{color:rgba(0,255,65,.2)}
+
+    /* DATE QUERY */
+    #lDate{background:var(--scr);z-index:50;opacity:0;transition:opacity .4s ease;pointer-events:none;padding:12px 14px 10px;align-items:center}
+    #lDate.in{opacity:1;pointer-events:all}
+    #dateHdr{font-family:'Share Tech Mono',monospace;font-size:7px;letter-spacing:3px;color:rgba(0,255,65,.35);border-bottom:1px solid rgba(0,255,65,.08);padding-bottom:5px;margin-bottom:12px;flex-shrink:0;width:100%}
+    #dateDisplay{font-size:clamp(28px,7vw,42px);letter-spacing:8px;color:var(--p);text-shadow:0 0 20px var(--p),0 0 50px var(--p2);text-align:center;flex-shrink:0;width:100%;margin-bottom:14px;animation:flicker 3s infinite}
+    #dateLog{flex:1;overflow-y:auto;width:100%;font-size:clamp(11px,2vw,14px);color:var(--p);line-height:1.6;text-shadow:0 0 4px rgba(0,255,65,.2);min-height:1em}
 
     /* TRUMLEY */
     #lTrum{background:var(--scr);opacity:0;transform:translateY(100%);transition:opacity .6s ease,transform .7s cubic-bezier(.16,1,.3,1);padding:12px 16px 10px;z-index:40;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin;scrollbar-color:rgba(0,255,65,.25) transparent}
@@ -526,6 +538,12 @@
                 </div>
               </div>
 
+              <div class="layer" id="lDate">
+                <div id="dateHdr">/// TEMPORAL QUERY — DR. TRUMLEY ///</div>
+                <div id="dateDisplay"><span id="dateVal"></span></div>
+                <div id="dateLog"></div>
+              </div>
+
               <div class="layer" id="lTrum">
                 <div class="t-hdr">
                   <div class="t-avatar">T</div>
@@ -633,11 +651,14 @@
             <span class="t-knob-lbl">FUTURE</span>
           </div>
 
-          <div class="t-numpad">
-            <div class="t-num">7</div><div class="t-num">8</div><div class="t-num">9</div>
-            <div class="t-num">4</div><div class="t-num">5</div><div class="t-num">6</div>
-            <div class="t-num">1</div><div class="t-num">2</div><div class="t-num">3</div>
-            <div class="t-num" style="grid-column:2">0</div>
+          <div class="t-numpad-wrap">
+            <div id="numDisplay">__/__</div>
+            <div class="t-numpad">
+              <div class="t-num">7</div><div class="t-num">8</div><div class="t-num">9</div>
+              <div class="t-num">4</div><div class="t-num">5</div><div class="t-num">6</div>
+              <div class="t-num">1</div><div class="t-num">2</div><div class="t-num">3</div>
+              <div class="t-num" style="grid-column:2">0</div>
+            </div>
           </div>
         </div>
 
@@ -658,6 +679,8 @@ let state = S.IDLE;
 // Session-only: resets on every page load, never touches localStorage
 let _hasRejectedThisSession = false;
 let secretMode  = false;
+let dateMode    = false;
+let numDigits   = [];
 let pressedBtns = [];
 const GREEN_INDICES = [0, 5, 11]; // indices of col-g buttons in the 4×3 grid
 function isSheepMode(){ return _hasRejectedThisSession; }
@@ -686,6 +709,7 @@ const sitePrev = document.getElementById('sitePreview');
 const lSecret  = document.getElementById('lSecret');
 const secretLog= document.getElementById('secretLog');
 const secretQ  = document.getElementById('secretQ');
+const lDate    = document.getElementById('lDate');
 const launchBtn= document.getElementById('launchBtn');
 const gaugePanel = document.getElementById('gaugePanel');
 
@@ -790,10 +814,10 @@ function sweepKnobs(){
   if(!past||!future) return;
   // PAST sweeps from -150° toward center
   past.style.transition = 'transform 2.8s cubic-bezier(.2,0,.45,.95)';
-  setTimeout(()=>{ past.style.transform = 'rotate(-5deg)'; }, 80);
-  // FUTURE sweeps from +150° toward center with slight offset for realism
+  setTimeout(()=>{ past.style.transform = 'rotate(0deg)'; }, 80);
+  // FUTURE sweeps from +150° to exactly 12 o'clock
   future.style.transition = 'transform 2.6s cubic-bezier(.2,0,.45,.95)';
-  setTimeout(()=>{ future.style.transform = 'rotate(8deg)'; }, 200);
+  setTimeout(()=>{ future.style.transform = 'rotate(0deg)'; }, 200);
 }
 
 /* ── Knob drag (detune effect) ── */
@@ -1021,6 +1045,87 @@ function initSecretInput(){
   });
 }
 
+/* ── Numpad date query ── */
+function numDisplayUpdate(){
+  const el = document.getElementById('numDisplay');
+  if(!el) return;
+  const filled = numDigits.join('') + '__________';
+  el.textContent = filled.slice(0,2) + '/' + filled.slice(2,4);
+  el.classList.toggle('active', numDigits.length > 0);
+}
+
+function formatDate(digits){
+  const m = Math.max(1, Math.min(12, parseInt(digits.slice(0,2)) || 1));
+  const d = Math.max(1, Math.min(31, parseInt(digits.slice(2,4)) || 1));
+  const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+  return { display: months[m-1] + ' ' + String(d).padStart(2,'0'), readable: months[m-1] + ' ' + d };
+}
+
+function dismissDateMode(){
+  if(!dateMode) return;
+  dateMode = false;
+  lDate.classList.remove('in');
+  numDigits = [];
+  numDisplayUpdate();
+  if(state >= S.MAP){ lMap.style.opacity='1'; }
+}
+
+async function showDateQuery(digits){
+  dateMode = true;
+  const { display, readable } = formatDate(digits);
+  const dateVal = document.getElementById('dateVal');
+  const dateLog = document.getElementById('dateLog');
+  dateVal.textContent = display;
+  dateLog.textContent = '...';
+  lMap.style.opacity = '0';
+  lDate.classList.add('in');
+  const question = `What happened in San Francisco on ${readable}? Tell me one specific, evocative historical event or moment from that date in SF history.`;
+  try {
+    const resp = await fetch('/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question})});
+    const data = await resp.json();
+    const answer = data.answer || 'Signal lost. Try again.';
+    dateLog.textContent = '';
+    typewrite(dateLog, answer, 22, null, false);
+  } catch(err){
+    dateLog.textContent = '[TRANSMISSION FAILED — is server.py running?]';
+  }
+}
+
+function initNumpad(){
+  const nums = [...document.querySelectorAll('.t-numpad .t-num')];
+  nums.forEach(btn => {
+    btn.addEventListener('click', () => {
+      if(state < S.APPROACH || dateMode || secretMode) return;
+      const digit = btn.textContent.trim();
+      if(!/^\d$/.test(digit)) return;
+      // Flash button
+      btn.style.background = 'rgba(0,255,65,.35)';
+      btn.style.color = '#000';
+      setTimeout(()=>{ btn.style.background=''; btn.style.color=''; }, 140);
+      numDigits.push(digit);
+      numDisplayUpdate();
+      if(numDigits.length >= 4){
+        const entered = numDigits.slice(0,4).join('');
+        numDigits = [];
+        numDisplayUpdate();
+        screen.classList.add('glitching');
+        setTimeout(()=>{ screen.classList.remove('glitching'); showDateQuery(entered); }, 280);
+      }
+    });
+  });
+
+  // ABORT button: dismiss date layer, or clear numpad input
+  const abortEl = document.querySelector('.t-abort');
+  if(abortEl){
+    abortEl.addEventListener('click', () => {
+      if(state < S.APPROACH) return;
+      if(dateMode){ dismissDateMode(); return; }
+      numDigits = [];
+      numDisplayUpdate();
+    });
+  }
+}
+
 /* ── Gauge needle slam ── */
 function getRotationDeg(el){
   const st = window.getComputedStyle(el);
@@ -1130,6 +1235,11 @@ function resetScreen(){
 
   // Reset secret terminal if open
   if(secretMode){ secretMode=false; lSecret.classList.remove('in'); secretLog.innerHTML=''; secretQ.value=''; }
+  // Reset date query if open
+  if(dateMode){ dateMode=false; lDate.classList.remove('in'); }
+  numDigits = [];
+  const nd = document.getElementById('numDisplay');
+  if(nd){ nd.textContent='__/__'; nd.classList.remove('active'); }
   resetButtonState();
 
   lBoot.classList.remove('out');
@@ -1158,17 +1268,19 @@ function approach(){
   sweepKnobs();
   enableKnobDrag();
 
-  // Static tuning: show interference immediately, fade as knobs reach FTR
-  const staticEl = document.getElementById('static');
-  if(staticEl){ staticEl.style.transition = 'opacity 1.1s ease'; staticEl.style.opacity = '1'; }
-  setTimeout(()=>{
-    if(staticEl){ staticEl.style.transition = 'opacity 1.1s ease'; staticEl.style.opacity = '0'; }
-  }, 2200);
+  // Screen starts as pure static — hide POAM boot logo immediately
+  lBoot.classList.add('out');
+  setTimeout(()=>{ lBoot.style.display='none'; }, 400);
 
+  // Full static during tuning — fades out when startMap fires
+  const staticEl = document.getElementById('static');
+  if(staticEl){ staticEl.style.transition = 'opacity .4s ease'; staticEl.style.opacity = '1'; }
+
+  // Glitch as knobs land at center (~2.9s)
   setTimeout(()=>{
     screen.classList.add('glitching');
     setTimeout(()=>screen.classList.remove('glitching'),400);
-  },2000);
+  }, 2900);
 
   setTimeout(startMap, 3200);
 }
@@ -1192,14 +1304,17 @@ function retreat(){
 /* ── Map ── */
 function startMap(){
   state=S.MAP;
-  lBoot.classList.add('out');
-  setTimeout(()=>{ lBoot.style.display='none'; },400);
+  // lBoot already hidden from approach() — now fade static and start boot sequence
+  const staticEl = document.getElementById('static');
+  if(staticEl){ staticEl.style.transition = 'opacity .9s ease'; staticEl.style.opacity = '0'; }
 
-  showBootSequence(()=>{
-    lMap.classList.add('in');
-    updateMapLinesFromKnobs(); // fade in grid lines based on knob positions
-    setTimeout(highlightRoads, 1800);
-  });
+  setTimeout(()=>{
+    showBootSequence(()=>{
+      lMap.classList.add('in');
+      updateMapLinesFromKnobs();
+      setTimeout(highlightRoads, 1800);
+    });
+  }, 700);
 }
 
 const majorRoads=['rMarket','rVanNess','rGeary','rMission','rEmb','rFwy'];
@@ -1357,6 +1472,7 @@ tw.addEventListener('touchend', e=>{ e.preventDefault(); approach(); },{passive:
 
 initButtons();
 initSecretInput();
+initNumpad();
 
 })();
 </script>
