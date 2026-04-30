@@ -652,7 +652,7 @@
           </div>
 
           <div class="t-numpad-wrap">
-            <div id="numDisplay">__/__</div>
+            <div id="numDisplay">____</div>
             <div class="t-numpad">
               <div class="t-num">7</div><div class="t-num">8</div><div class="t-num">9</div>
               <div class="t-num">4</div><div class="t-num">5</div><div class="t-num">6</div>
@@ -1060,41 +1060,39 @@ function initSecretInput(){
   });
 }
 
-/* ── Numpad date query ── */
+/* ── Numpad year query ── */
 function numDisplayUpdate(){
   const el = document.getElementById('numDisplay');
   if(!el) return;
-  const filled = numDigits.join('') + '__________';
-  el.textContent = filled.slice(0,2) + '/' + filled.slice(2,4);
+  const filled = numDigits.join('') + '____';
+  el.textContent = filled.slice(0,4);
   el.classList.toggle('active', numDigits.length > 0);
 }
 
-function formatDate(digits){
-  const m = Math.max(1, Math.min(12, parseInt(digits.slice(0,2)) || 1));
-  const d = Math.max(1, Math.min(31, parseInt(digits.slice(2,4)) || 1));
-  const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
-  return { display: months[m-1] + ' ' + String(d).padStart(2,'0'), readable: months[m-1] + ' ' + d };
+function formatYear(digits){
+  const year = parseInt(digits) || 2026;
+  return { display: String(year), readable: String(year) };
 }
 
 function dismissDateMode(){
   if(!dateMode) return;
   dateMode = false;
   lDate.classList.remove('in');
+  lMap.style.opacity = (state >= S.MAP) ? '1' : '0';
   numDigits = [];
   numDisplayUpdate();
-  if(state >= S.MAP){ lMap.style.opacity='1'; }
 }
 
 async function showDateQuery(digits){
   dateMode = true;
-  const { display, readable } = formatDate(digits);
+  const { display, readable } = formatYear(digits);
   const dateVal = document.getElementById('dateVal');
   const dateLog = document.getElementById('dateLog');
   dateVal.textContent = display;
   dateLog.textContent = '...';
   lMap.style.opacity = '0';
   lDate.classList.add('in');
-  const question = `What happened in San Francisco on ${readable}? Tell me one specific, evocative historical event or moment from that date in SF history.`;
+  const question = `Temporal query: year ${readable}. What do you know about this year — from POAM records, the timeline, or San Francisco history? Speak as Trumley.`;
   try {
     const resp = await fetch('/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question})});
     const data = await resp.json();
@@ -1254,7 +1252,7 @@ function resetScreen(){
   if(dateMode){ dateMode=false; lDate.classList.remove('in'); }
   numDigits = [];
   const nd = document.getElementById('numDisplay');
-  if(nd){ nd.textContent='__/__'; nd.classList.remove('active'); }
+  if(nd){ nd.textContent='____'; nd.classList.remove('active'); }
   resetButtonState();
 
   lBoot.classList.remove('out');
