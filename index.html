@@ -678,9 +678,10 @@ let state = S.IDLE;
 
 // Session-only: resets on every page load, never touches localStorage
 let _hasRejectedThisSession = false;
-let secretMode  = false;
-let dateMode    = false;
-let numDigits   = [];
+let secretMode    = false;
+let dateMode      = false;
+let numDigits     = [];
+let dateAutoTimer = null;
 let pressedBtns = [];
 const GREEN_INDICES = [0, 5, 11]; // indices of col-g buttons in the 4×3 grid
 function isSheepMode(){ return _hasRejectedThisSession; }
@@ -1074,31 +1075,51 @@ function formatYear(digits){
   return { display: String(year), readable: String(year) };
 }
 
-function dismissDateMode(){
+function dismissDateMode(andShowMessage){
   if(!dateMode) return;
+  if(dateAutoTimer){ clearTimeout(dateAutoTimer); dateAutoTimer = null; }
   dateMode = false;
   lDate.classList.remove('in');
   lMap.style.opacity = (state >= S.MAP) ? '1' : '0';
   numDigits = [];
   numDisplayUpdate();
+  if(andShowMessage && state === S.MAP){
+    setTimeout(showMessage, 600);
+  }
 }
 
 async function showDateQuery(digits){
   dateMode = true;
   const { display, readable } = formatYear(digits);
+
+  // Keep year visible in numpad display during date mode
+  const nd = document.getElementById('numDisplay');
+  if(nd){ nd.textContent = display; nd.classList.add('active'); }
+
   const dateVal = document.getElementById('dateVal');
   const dateLog = document.getElementById('dateLog');
   dateVal.textContent = display;
   dateLog.textContent = '...';
   lMap.style.opacity = '0';
   lDate.classList.add('in');
+
   const question = `Temporal query: year ${readable}. What do you know about this year — from POAM records, the timeline, or San Francisco history? Speak as Trumley.`;
   try {
     const resp = await fetch('/ask',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({question})});
     const data = await resp.json();
     const answer = data.answer || 'Signal lost. Try again.';
     dateLog.textContent = '';
-    typewrite(dateLog, answer, 22, null, false);
+    typewrite(dateLog, answer, 22, () => {
+      // After response finishes typing, start 60s auto-dismiss
+      dateAutoTimer = setTimeout(() => {
+        dateAutoTimer = null;
+        screen.classList.add('glitching');
+        setTimeout(() => {
+          screen.classList.remove('glitching');
+          dismissDateMode(true);
+        }, 350);
+      }, 60000);
+    }, false);
   } catch(err){
     dateLog.textContent = '[TRANSMISSION FAILED — is server.py running?]';
   }
